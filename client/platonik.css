@@ -1,5 +1,6 @@
 body			{ margin: 0; font-family: 'infiniregular',Helvetica,Arial,sans-serif; background: #efede7; }
 a				{ cursor: pointer; }
+img				{ display: block; }
 
 /* LOGIN */
 .loginFrame 			{  }
@@ -43,5 +44,13 @@ a				{ cursor: pointer; }
 .checkin .text		{ float: left; line-height: 50px; font-size: 14px; }
 
 
+/* PERSON PAGE */
+.personView 						{ }
+.personView h3						{ text-align: center; }
+.personView .featureProfilePic		{ max-width: 50%; margin: 0px auto; border-radius: 10px;  }
 
-.skinnyText { position: relative; width: 100px; z-index: 2; padding: 40px 0; margin: 0px auto; }
+
+
+
+
+
