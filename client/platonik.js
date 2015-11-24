@@ -1,3 +1,9 @@
+
+var platonik_config = {
+	appId : '926145584145218'
+}
+
+
 var app = angular.module('PlatonikApp', ['ui.bootstrap']);
 
 app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$window', '$modal',
@@ -5,6 +11,7 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 		$scope.init = function(){
 			$scope.appName = 'Platonik';
 			$scope.stage = 'login';
+			$scope.view = 'account';		
 			$scope.header = {
 				show : {
 					atAll : true,
@@ -29,8 +36,13 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 			$scope.currentPerson = {
 				pics : {}
 			}
+			$scope.loadPerson();
+			
+			// load user authenticator
+			$scope.fbData = {};
+			$scope.loadFB();
+			
 		}
-		$scope.init();
 		
 		$scope.acctMgr = {
 			
@@ -86,7 +98,107 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 			
 			// fetch data
 		
+		
 		}
+		
+		
+		// FACEBOOK CONNECTOR STUFF
+
+		$scope.loadFB = function(){
+		
+			$window.fbAsyncInit = function() {
+				FB.init({ 
+					appId: platonik_config.appId, 
+					xfbml: true,
+				    version    : 'v2.5'
+				});
+				FB.getLoginStatus(function(response) {
+					if(response.status == 'connected') $scope.fbData.status = 'loggedIn';
+					else $scope.fbData.status = 'unconnected';
+					$scope.$digest();
+				});
+			
+				FB.Event.subscribe('auth.authResponseChange', function(res) {
+				
+					if (res.status === 'connected') {
+				
+						$scope.fbData.access_token = res.authResponse.accessToken;
+						console.log($scope.fbData.access_token);
+						$scope.fbData.status = 'loggedIn';
+						FB.api('/me?fields=first_name,email,last_name,middle_name,location', function(user) {
+		
+							if('location' in user) user.location = user.location.name;
+							user.fbid = user.id;
+							delete user.id;
+							user.year = 0;
+							user.track = 0;
+							user.session = 0;				
+							$scope.fbData.user = user;
+						
+							var request = {
+								user: user,
+								access_token: $scope.fbData.access_token,
+								verb: "loginUser"
+							}
+							$.post('platonik.php', request, function(response){
+								console.log(response);
+							}, 'json');
+						
+							//$scope.fetchUser(user.id, true)
+
+							FB.api(user.id + '/friends', function(response) {
+								$scope.fbData.friends = response;
+							});
+						});
+					}
+					else {
+						$scope.resetFb()
+					}
+
+					$scope.$digest();
+				});
+			};
+
+
+			// load the Facebook javascript SDK
+			 (function(d, s, id){
+			 var js, fjs = d.getElementsByTagName(s)[0];
+			 if (d.getElementById(id)) {return;}
+			 js = d.createElement(s); js.id = id;
+			 js.src = "//connect.facebook.net/en_US/sdk.js";
+			 fjs.parentNode.insertBefore(js, fjs);
+		   }(document, 'script', 'facebook-jssdk'));
+	
+		}
+
+		$scope.login = function() {	
+			
+			alert('hit');
+		
+			// triggers authResponseChange
+			FB.login(function(){
+			}, {scope: 'email,user_friends,user_about_me,user_location,user_photos'});	
+		}
+	
+		$scope.logout = function(){
+			FB.logout();	// triggers authResponseChange
+			$scope.loadInterface('good_bye');
+			$scope.user = {};
+		 }
+	
+		// reset user obj, called on auth change to neg
+		$scope.resetFb = function(){
+			$scope.fbData = {
+				status: 'unconnected'
+			}
+		}
+		
+		
+		
+		
+		
+		$scope.init();
+
 	}
 	
 ]);

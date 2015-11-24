@@ -48,7 +48,11 @@ img				{ display: block; }
 .personView 						{ }
 .personView h3						{ text-align: center; }
 .personView .featureProfilePic		{ max-width: 50%; margin: 0px auto; border-radius: 10px;  }
-
+.personView .checkinInfo			{ text-align: center; margin: 10px 0 0; }
+.personView .smallBtns div			{ padding: 0px; }
+.personView .smallBtns a.red		{ background: #660000 !important; }
+.personView .smallBtns a.green		{ background: green !important; }
+.personView .profile				{ width: 70%; margin: 20px auto; text-align: center; }
 
 
 

@@ -39,6 +39,26 @@
 	
 	<body  ng-app="PlatonikApp" ng-controller="PlatonikCtrl">
 	
+		<!-- FACEBOOK INTEGRATION -->
+		<script>
+			window.fbAsyncInit = function() {
+				FB.init({
+					appId      : '926145584145218',
+					xfbml      : true,
+					version    : 'v2.5'
+				});
+			};
+
+			(function(d, s, id){
+				var js, fjs = d.getElementsByTagName(s)[0];
+				if (d.getElementById(id)) {return;}
+				js = d.createElement(s); js.id = id;
+				js.src = "//connect.facebook.net/en_US/sdk.js";
+				fjs.parentNode.insertBefore(js, fjs);
+			}(document, 'script', 'facebook-jssdk'));
+		</script>
+	
+	
 		<!-- LOGIN INTERFACE -->
 		<div class="loginFrame" ng-if="stage=='login'" >
 			<div class="loginTop">
@@ -47,7 +67,7 @@
 			<div class="loginMain">
 				<p>Click below to start using {{appName}}</p>
 				<div class="btnFrame">
-					<a ng-click="connect()">
+					<a ng-click="login()">
 						<img src="client/images/fbcnct.png" />
 					</a>
 				</div>
@@ -287,16 +307,23 @@
 				<div ng-if="view == 'person'" class="personView">
 					<div ng-if="screen = 'main'">
 						<h3>{{currentPerson.name}}</h3>
-						<img class="featureProfilePic" src="{{currentPerson.pics.big}}" />
-						<div class="smallBtns">
-							<a class="btn-primary">Message</a>
-							<a class="btn-primary red">Block</a>
-						</div>
+						<img class="featureProfilePic" ng-src="{{currentPerson.pics.big}}" />
 						<div class="checkinInfo">
 							<b>Last Check-In:</b>
 							<br /><i>5:54pm</i>
 							<br /><i>Arabica Coffee</i>							
 						</div>
+						<div class="smallBtns row">
+							<div class="col-md-2">&nbsp;</div>
+							<div class="col-md-4" class="padding-right: 8px;">
+								<a class="btn-primary green">Message</a>
+							</div>
+							<div class="col-md-4" style="padding-left: 8px;">
+								<a class="btn-primary red">Block</a>
+							</div>
+							<div class="col-md-2">&nbsp;</div>
+						</div>
+						
 						<div class="profile">
 							<p>{{currentPerson.bio}}</p>						
 						</div>
