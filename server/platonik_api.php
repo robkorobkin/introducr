@@ -8,11 +8,12 @@
 	
 		function loginUser(){
 			extract($this -> request);
-			$userFromInput = $user;
+			$userFromInput = (array) $user;
+			
 		
 			// verify access token
 			$userFromFacebook = json_decode(file_get_contents('https://graph.facebook.com/me?access_token=' . $access_token));		
-			if($userFromFacebook -> id != $userFromInput -> fbid){
+			if($userFromFacebook -> id != $userFromInput['fbid']){
 				echo "something is weird, requested user doesn't match access token";
 				exit;
 			}
@@ -34,7 +35,7 @@
 			// else - update date accessed
 			$update['dateAccessed'] = date("Y-m-d H:i:s");
 			$where['fbid'] = $userFromInput['fbid'];
-			$this -> update($update, "users", $where);
+			$this -> db -> update($update, "users", $where);
 			
 			// return user record from database
 			return $userFromDB;

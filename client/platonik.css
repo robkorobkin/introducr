@@ -2,6 +2,13 @@ body			{ margin: 0; font-family: 'infiniregular',Helvetica,Arial,sans-serif; bac
 a				{ cursor: pointer; }
 img				{ display: block; }
 
+
+/* LOADING */
+.loadingMain 			{ 	position: fixed;  height: 100px; top: 50%; margin-top: -50px;
+							text-align: center; width: 300px; left: 50%; margin-left: -150px; }
+.loadingMain img 			{ display: block; width: 200px; margin: 0px auto; }
+
+
 /* LOGIN */
 .loginFrame 			{  }
 .loginMain 				{ 	position: fixed;  height: 100px; top: 50%; margin-top: -50px;

@@ -10,7 +10,7 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 	function($scope, $http, $sce, $rootScope, $window, $modal){
 		$scope.init = function(){
 			$scope.appName = 'Platonik';
-			$scope.stage = 'login';
+			$scope.stage = 'loading';
 			$scope.view = 'account';		
 			$scope.header = {
 				show : {
@@ -113,8 +113,12 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 				    version    : 'v2.5'
 				});
 				FB.getLoginStatus(function(response) {
-					if(response.status == 'connected') $scope.fbData.status = 'loggedIn';
-					else $scope.fbData.status = 'unconnected';
+					if(response.status == 'connected'){
+					 	$scope.fbData.status = 'loggedIn';
+					 }
+					else {
+						$scope.resetFb();
+					}
 					$scope.$digest();
 				});
 			
@@ -141,7 +145,9 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 								verb: "loginUser"
 							}
 							$.post('platonik.php', request, function(response){
-								console.log(response);
+								$scope.stage = 'app';
+								$scope.view = 'account';
+								$scope.$digest();
 							}, 'json');
 						
 							//$scope.fetchUser(user.id, true)
@@ -152,7 +158,7 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 						});
 					}
 					else {
-						$scope.resetFb()
+						$scope.resetFb();
 					}
 
 					$scope.$digest();
@@ -173,8 +179,6 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 
 		$scope.login = function() {	
 			
-			alert('hit');
-		
 			// triggers authResponseChange
 			FB.login(function(){
 			}, {scope: 'email,user_friends,user_about_me,user_location,user_photos'});	
@@ -191,6 +195,9 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 			$scope.fbData = {
 				status: 'unconnected'
 			}
+			$scope.stage = 'login';
+			$scope.$digest();
+
 		}
 		
 		
