@@ -8,5 +8,11 @@
 	$api = new PlatonikAPI($platonik_config);	
 	$api -> request = $_POST;
 	$verb = $api -> request['verb'];
+	
+	if($verb != 'loginUser' && $_SESSION['fbid'] != $api -> request -> fbid){
+		echo "You are making a request that you don't have permissions for.";
+		exit();
+	}
+	
 	$response = $api -> $verb();
 	echo json_encode($response);
