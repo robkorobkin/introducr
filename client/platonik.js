@@ -1,116 +1,313 @@
 
-var platonik_config = {
-	appId : '926145584145218'
+// GET GEOPOSITION
+var here = {
+	hasLocation : false
+}
+function updateLocation(position){				
+	here.hasLocation = true;
+	here.lat = position.coords.latitude;
+	here.lon = position.coords.longitude;
+	here.img_url = 	
+		"http://maps.googleapis.com/maps/api/staticmap?center=" + 
+		here.lat + ',' + here.lon + 
+		"&zoom=14&size=300x200&sensor=false" +
+		"&markers=color:blue|" + here.lat + "," + here.lon;
+}
+if (navigator.geolocation) {
+	navigator.geolocation.getCurrentPosition(updateLocation);
+	navigator.geolocation.watchPosition(updateLocation);
+} else {
+	// browser does not support geo-positon
 }
 
 
-var app = angular.module('PlatonikApp', ['ui.bootstrap']);
 
-app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$window', '$modal',
-	function($scope, $http, $sce, $rootScope, $window, $modal){
+
+var app = angular.module('PlatonikApp', ['LocalStorageModule']);
+
+app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$window',  'localStorageService',
+	function($scope, $http, $sce, $rootScope, $window, localStorageService){
+		
+
 		$scope.init = function(){
+
+			$scope.dictionary = dictionary;
+			$scope.fb_config = fb_config;
+			$scope.here = here;
+			$scope.loaded = false;
 			$scope.appName = 'Platonik';
-			$scope.stage = 'loading';
-			$scope.view = 'account';		
+			$scope.view = 'loading';
 			$scope.header = {
-				show : {
-					atAll : true,
-					left: true,
-					center: true,
-					right: false
-				},
-				
-				// these should actually be $sce escaped
-				text : {
-					left : '&lt;',
-					center: 'SIGN UP',
-					right: ''
-				}
+				show : false
 			}
 			$scope.footer = {
-				show : {
-					atAll : true
-				}
+				show : true
 			}
+
+			// init socket controller
+			$scope.socketController.init(socket_path);
 			
+			//  load state from cookie
+			$scope.cookieMonster.load();
+			
+			// bring up selected person
 			$scope.currentPerson = {
 				pics : {}
 			}
-			$scope.loadPerson();
 			
 			// load user authenticator
 			$scope.fbData = {};
 			$scope.loadFB();
 			
+			
 		}
 		
-		$scope.acctMgr = {
+		
+		
+		// API CLIENT OBJECT
+		$scope.apiClient = {
+			
+			postData : function(request, f){
+				request.uid = $scope.user.uid;
+				$.post('platonik.php', request, function(response){
+					if(f) f(response);
+				}, 'json');
+			}
+		
+		}
+		
+		
+		// COOKIE MONSTER - MAINTAIN STATE IN BETWEEN SESSIONS
+		$scope.cookieMonster = {
+			save : function(){
+				localStorageService.set('user', $scope.user);
+			},
+			load : function(){
+				var user = localStorageService.get('user');
+				console.log(user);
+				if(user) {
+					$scope.user = user;
+					$scope.feedController.open();
+					$scope.loaded = true;
+				}
+			}
+		}
+		
+
+		// VIEW MANAGER / ROUTER
+		$scope.loadView = function(view, screen){
+				
+			$scope.view = view;
+			if(screen) $scope.screen = screen;
+
+			// update footer view
+			$('.footer .link').removeClass('active');
+			$('.footer .' + view).addClass('active');	
+			
+		}
+
+		
+		// ACCOUNT CONTROLLER
+		$scope.acctController = {
 			
 			step : 1,
 			
 			charsRemaining : 300,
 			
-			loadAcct2 : function(){
-				
+			saveAndProgress : function(){
+
 				// save updated user
+				var request = {
+					user: $scope.user,
+					verb: 'updateUser'
+				}				
+				$scope.apiClient.postData(request, function(user){
+					$scope.user = user;
+					$scope.cookieMonster.save();
+				});
 				
 				// iterate to next screen
-				this.step = 2;
-			
+				this.step++;
+				
+				if(this.step == 3) {
+					$scope.loadView('browse');
+					this.step = 0;
+				}			
 			}
 		
-		
 		}
 		
-		$scope.connect = function(){
-			// put fb auth stuff here
-			
-			$scope.stage = 'app';
-			$scope.loadView('account');
-		}
 		
-		$scope.loadView = function(view, screen){
-			$scope.view = view;
-			if(screen) $scope.screen = screen;
-		}
-		
-		$scope.checkinCreator = {
+		// CHECKIN CREATOR
+		$scope.checkinController = {
 			
 			open : function(){
-				$modal.open({
-					template: $('#modal_checkin').html(),
-					controller: 'CheckinCtrl',
-				});	
+				this.status = "open";
+			
+				this.newCheckin = {
+					location : ""
+				}
+				$scope.loadView("checkIn");
+			},
+			
+			submit : function(){
+				this.status = "sending";
+
+				if($scope.here.hasLocation){
+					this.newCheckin.lat = $scope.here.lat;
+					this.newCheckin.lon = $scope.here.lon;
+				}
+
+				var request = {
+					verb 	 : "postCheckin",
+					newCheckin : this.newCheckin
+				}
+			
+				$scope.apiClient.postData(request, function(response){
+					$scope.user = response.user;
+					this.status = "sent";
+				});			
+			
 			}
-			
 		}
 		
 		
-		$scope.loadPerson = function(){
-			$scope.loadView('person', 'main');
-			$scope.currentPerson.status = 'loading';
-			$scope.currentPerson.id = 123;
-			$scope.currentPerson.name = 'Rob Korobkin';
-			$scope.currentPerson.bio = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam a massa suscipit, dapibus sapien at, condimentum dui. In hendrerit feugiat ullamcorper. Nunc tincidunt sed ex at vehicula. In eget enim nec quam pharetra tristique. Morbi eleifend quam at erat consectetur mattis. Mauris commodo lacus eu lorem accumsan auctor. Cras ut enim nulla. Integer ac rhoncus nibh, eget egestas risus. ';
-			$scope.currentPerson.pics.big = 'https://scontent-lga3-1.xx.fbcdn.net/hphotos-xpf1/v/t1.0-9/11828667_717837171466_4063263757195261897_n.jpg?oh=7f99e3654cfb3a420042dec0301f6c89&oe=56B56344';
+		// FEED MANAGER
+		$scope.feedController = {
 			
+			open : function(){
+
+				this.status = "loading";
+				$scope.loadView("feed");
 			
+				var request = {
+					verb 	 : "listCheckins",
+				}
 			
-			// fetch data
+				$scope.apiClient.postData(request, function(response){
+					$scope.feedController.feedList = [];
+					
+					$.each(response.checkins, function(index, checkin){
+						var t = checkin.time.split(/[- :]/);
+						checkin.dateObj = new Date(t[0], t[1]-1, t[2], t[3], t[4], t[5]);
+
+						$scope.feedController.feedList.push(checkin);
+					});
+					
+					this.status = "loaded";
+					$scope.$digest();
+				});			
+			
+
+			},
+			
+			submit : function(){
+				this.status = "sending";
+
+				if($scope.here.hasLocation){
+					this.newCheckin.lat = $scope.here.lat;
+					this.newCheckin.lon = $scope.here.lon;
+				}
+
+				var request = {
+					verb 	 : "postCheckin",
+					newCheckin : this.newCheckin
+				}
+			
+				$scope.apiClient.postData(request, function(response){
+					$scope.user = response.user;
+					this.status = "sent";
+				});			
+			
+			}
+		}
+		
+		
+		// PERSON MANAGER
+		$scope.personController = {
+
+			openFromCheckin : function(checkin){
+				$scope.screen = 'profile'; // if chat already going, go straight to chat
+				$scope.selected_person = checkin;
+				$scope.selected_person.lastCheckin = checkin;
+				$scope.loadView('person');
+			},
+		
+			openChat : function(){
+				$scope.screen = 'chat';
+				$scope.footer.show = false;
+				$scope.header.show = true;
+			}
 		
 		
 		}
 		
 		
+		///////////////////////////////////////////////////////////////////////////////////
+		// SOCKET STUFF
+
+		$scope.socketController = {
+		
+			init : function(socketPath) {
+				var host = socketPath; // SET THIS TO YOUR SERVER
+				try {
+					this.socket = new WebSocket(host);
+					
+					this.socket.onopen = function(msg) { 
+					};
+							   
+					this.socket.onmessage = function(msg) { 
+					};
+							   
+					this.socket.onclose   = function(msg) { 
+					};
+					
+				}
+				catch(ex){ 
+					console.log(ex); 
+				}
+			},
+
+			send : function(){
+				try { 
+					this.socket.send(msg); 
+				} catch(ex) { 
+					console.log(ex); 
+				}
+			},
+			
+			quit : function(){
+				if (this.socket != null) {
+					this.socket.close();
+					this.socket=null;
+				}
+			},
+
+			reconnect : function() {
+				this.quit();
+				this.init();
+			}
+		}
+		
+		
+		
+		///////////////////////////////////////////////////////////////////////////////////
+		// DATA MODEL STUFF
+		
+		$scope.parsePerson = function(person){
+	
+		}
+		
+		///////////////////////////////////////////////////////////////////////////////////
 		// FACEBOOK CONNECTOR STUFF
 
 		$scope.loadFB = function(){
 		
 			$window.fbAsyncInit = function() {
 				FB.init({ 
-					appId: platonik_config.appId, 
+					appId: $scope.fb_config.appId, 
 					xfbml: true,
-				    version    : 'v2.5'
+				    version: 'v2.5'
 				});
 				FB.getLoginStatus(function(response) {
 					if(response.status == 'connected'){
@@ -119,7 +316,6 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 					else {
 						$scope.resetFb();
 					}
-					$scope.$digest();
 				});
 			
 				FB.Event.subscribe('auth.authResponseChange', function(res) {
@@ -127,31 +323,20 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 					if (res.status === 'connected') {
 				
 						$scope.fbData.access_token = res.authResponse.accessToken;
-						console.log($scope.fbData.access_token);
 						$scope.fbData.status = 'loggedIn';
-						FB.api('/me?fields=first_name,email,last_name,middle_name,location', function(user) {
+						FB.api('/me', function(user) {
 		
-							if('location' in user) user.location = user.location.name;
-							user.fbid = user.id;
-							delete user.id;
-							user.year = 0;
-							user.track = 0;
-							user.session = 0;				
-							$scope.fbData.user = user;
-						
 							var request = {
-								user: user,
 								access_token: $scope.fbData.access_token,
 								verb: "loginUser"
 							}
-							$.post('platonik.php', request, function(response){
-								$scope.stage = 'app';
-								$scope.view = 'account';
-								$scope.$digest();
-							}, 'json');
+							$scope.apiClient.postData(request, function(response){
+								$scope.user = response.user;								
+								if($scope.user.isNew && !$scope.loaded){
+									$scope.loadView('account');
+								}
+							});
 						
-							//$scope.fetchUser(user.id, true)
-
 							FB.api(user.id + '/friends', function(response) {
 								$scope.fbData.friends = response;
 							});
@@ -161,7 +346,6 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 						$scope.resetFb();
 					}
 
-					$scope.$digest();
 				});
 			};
 
@@ -181,7 +365,7 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 			
 			// triggers authResponseChange
 			FB.login(function(){
-			}, {scope: 'email,user_friends,user_about_me,user_location,user_photos'});	
+			}, {scope: 'email,user_friends,user_about_me,user_location,user_photos, user_birthday'});	
 		}
 	
 		$scope.logout = function(){
@@ -199,7 +383,8 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 			$scope.$digest();
 
 		}
-		
+
+		///////////////////////////////////////////////////////////////////////////////////
 		
 		
 		
@@ -210,7 +395,3 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 	
 ]);
 
-app.controller('CheckinCtrl', ['$scope', '$http', '$sce', '$rootScope', '$window', '$modal',
-	function($scope, $http, $sce, $rootScope, $window, $modal){
-	}
-]);

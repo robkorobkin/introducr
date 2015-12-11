@@ -2,12 +2,39 @@
 <html lang="en">
 	<head>
 		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-	
+
+
+		<!-- JQUERY \ ANGULAR -->	
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-alpha1/jquery.min.js"></script>
 		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.15/angular.min.js"></script>
-		<script src="//angular-ui.github.io/bootstrap/ui-bootstrap-tpls-0.10.0.js"></script>
-		<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
+		<script src="client/third_party/angular-local-storage.min.js"></script>
+
+		<!-- BOOTSTRAP -->
+		<script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.5/js/bootstrap.min.js"></script>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" />
+
+		<!-- MATERIAL DESIGN -->
+		<script type="text/javascript" src="client/third_party/b-md/arrive.min.js"></script>
+		<script type="text/javascript" src="client/third_party/b-md/material.min.js"></script>
+		<link rel="stylesheet" href="client/third_party/b-md/bootstrap-material-design.min.css" />
+		<script type="text/javascript" src="client/third_party/b-md/ripples.min.js"></script>
+		<link rel="stylesheet" href="client/third_party/b-md/ripples.min.css" />
+		<script>$.material.init();</script>
+
+
+		<script>$.material.init()</script>
+
+		<!-- BOOTSTRAP \ MD DATE PICKER -->
+		<script type="text/javascript" src="http://momentjs.com/downloads/moment-with-locales.min.js"></script>		
+		<script type="text/javascript" src="client/third_party/date_picker/bootstrap-material-datetimepicker.js"></script>
+		<link rel="stylesheet" href="client/third_party/date_picker/bootstrap-material-datetimepicker.css" />
+	
+		<!-- FONTS -->
 		<link href="client/third_party/fonts/infiniti/stylesheet.css" rel="stylesheet" type="text/css" />		
+		<link href='http://fonts.googleapis.com/css?family=Roboto:400,500' rel='stylesheet' type='text/css'>
+		<link href='https://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+		<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
 
 		
 		<!-- ADD TO HOMESCREEN -->
@@ -33,64 +60,90 @@
 
 		
 		<!-- APP -->
-		<script src="client/platonik.js"></script>
+		<script src="platonik.php?lib=app"></script>
 		<link href="client/platonik.css" rel="stylesheet" type="text/css" />
 	</head>
 	
 	<body  ng-app="PlatonikApp" ng-controller="PlatonikCtrl">
 	
-	
-		<!-- LOADING INTERFACE -->
-		<div class="loadingFrame" ng-if="stage=='loading'" >
-			<div class="loginMain">
-				<p>Loading...</p>
-				<img src="client/images/loading.gif" />
+		<!-- CHAT CHROME -->
+		<div class="chatHeader" ng-if="screen == 'chat'">
+			<div class="left col-xs-2 col-sm-2">
+				<a ng-click="feedController.reveal()" class="btn btn-default btn-fab btn-fab-micro">
+					<i class="material-icons">keyboard_backspace</i>
+				</a>
+			</div>		
+			<div class="center col-xs-8 col-sm-8">
+				<div class="chatPersonName">{{selected_person.first_name}} {{selected_person.last_name}}</div>
+			</div>
+			<div class="right col-xs-2 col-sm-2" style="padding-right: 0">
+				<img class="personIcon" ng-src="//graph.facebook.com/{{selected_person.fbid}}/picture" />
 			</div>
 		</div>
-		
-	
-	
-		<!-- LOGIN INTERFACE -->
-		<div class="loginFrame" ng-if="stage=='login'" >
-			<div class="loginTop">
-				<div class="title">What is {{appName}}?</div>
-			</div>
-			<div class="loginMain">
-				<p>Click below to start using {{appName}}</p>
-				<div class="btnFrame">
-					<a ng-click="login()">
-						<img src="client/images/fbcnct.png" />
-					</a>
+		<div class="chatInput" ng-if="screen == 'chat'">
+			<div class="col-sm-4 col-sm-offset-4 col-xs-12">
+				<div class="col-sm-10 col-xs-10" style="padding-left: 0;">
+					<textarea ng-model="personController.chatInput"></textarea>
+				</div>
+				<div class="col-sm-2 col-xs-2" style="padding: 0;">
+					<a class="btn btn-success">Send</a> 
 				</div>
 			</div>
 		</div>
-		
+
 		
 		<!-- INTERNAL APP FRAME -->
-		<div class="appFrame container-fluid" ng-if="stage=='app'">
+		<div class="appFrame" >
 		
-			<!-- HEADER -->
-			<div class="header" ng-if="header.show.atAll">
-				<div class="left col-xs-4 col-sm-4">
-					<a class="left" ng-click="back()">&lt;</a>
-				</div>
-				<div class="center col-xs-4 col-sm-4" ng-if="header.show.center">
-					{{header.text.center}}
-				</div>
-				<div class="right col-xs-4 col-sm-4" ng-if="header.show.right">
-					{{header.text.right}}
-				</div>
-			</div>
 			
 			<!-- MAIN CONTENT -->
 			<div class="mainContent col-sm-4 col-sm-offset-4 col-xs-12" 
-				ng-class="{padTop : header.show.atAll, padBottom: footer.show.atAll }">
+				ng-class="{padTop : header.show, padBottom: footer.show }">
+
+				<!-- LOADING INTERFACE -->
+				<div class="loadingFrame" ng-if="view=='loading'" >
+					<div class="loginMain">
+						<p>Loading...</p>
+						<img src="client/images/loading.gif" />
+					</div>
+				</div>
+		
+				<!-- LOGIN INTERFACE -->
+				<div class="loginFrame" ng-if="view=='login'" >
+					<div class="loginTop">
+						<div class="title">What is {{appName}}?</div>
+					</div>
+					<div class="loginMain">
+						<p>Click below to start using {{appName}}</p>
+						<div class="btnFrame">
+							<a ng-click="login()">
+								<img src="client/images/fbcnct.png" />
+							</a>
+						</div>
+					</div>
+				</div>
+				
+				<!-- MAKE CHECK-IN INTERFACE -->
+				<div ng-if="view == 'checkIn'">
+					<div class=" panel panel-default primaryFrame" style="padding-top: 1px">
+						<div class="form-group" style="margin: 0"						 >
+							<label class="control-label" for="locationName">Where are you?</label>
+							<input class="form-control" id="locationName" type="text" ng-model="checkinController.newCheckin.location">
+						</div>
+						<div ng-if="here.hasLocation">
+							<img ng-src="{{here.img_url}}" class="checkinImage"/>
+						</div>
+						<div style="margin: 5px; text-align: center;">
+							<a class="btn btn-raised btn-success" ng-click="checkinController.submit()">Introduce Yourself</a>
+						</div>
+					</div>
+				</div>
 				
 				<!-- ACCOUNT MANAGEMENT INTERFACE -->
-				<div ng-if="view == 'account'" >
-					<div ng-if="acctMgr.step == 1">
-						<input type="text" ng-model="user.firstName" placeholder="FIRST NAME" />
-						<input type="text" ng-model="user.lastName" placeholder="LAST NAME" />
+				<div ng-if="view == 'account'" class=" panel panel-default primaryFrame" style="padding: 16px">
+					<div ng-if="acctController.step == 1">
+						<input type="text" ng-model="user.first_name" placeholder="FIRST NAME" />
+						<input type="text" ng-model="user.last_name" placeholder="LAST NAME" />
 						<input type="text" ng-model="user.email" placeholder="EMAIL" />
 						<div class="row">
 							<div class="col-sm-8 col-xs-8">
@@ -98,246 +151,144 @@
 							</div>
 							<div class="col-sm-4 col-xs-4" style="padding-left: 0px">
 								<select ng-model="user.state" >
-									<option>-</option>
-									<option>IMPORT STATE LIST</option>
+									<option value="">State</option>
+									<option ng-repeat="(abbrev, state) in dictionary.us_state_abbrevs_names" 	
+											ng-value="state" ng-selected="state == user.state">{{abbrev}}</option>
 								</select>
 							</div>					
 						</div>
+						
+						      
 						<div class="row">
 							<div class="col-sm-6 col-xs-6">
 								<select ng-model="user.gender" >
-									<option>-</option>
-									<option>Male</option>
-									<option>Female</option>
-									<option>Other</option>									
+									<option value=""></option>
+									<option>MALE</option>
+									<option>FEMALE</option>
+									<option>OTHER</option>									
 								</select>
 							</div>
-							<div class="col-sm-6 col-xs-6" style="padding-left: 0px">
-								<input type="text" ng-model="user.age" placeholder="AGE"  />
+						</div>
+
+						<div class="row">
+							<div class="col-sm-4 col-xs-4" style="padding-right: 0">	
+								<select ng-model="user.birthday.month">
+									<option value="0">MONTH</option>
+									<option ng-repeat="(monthNum, monthName) in dictionary.months"
+											ng-value="monthNum" ng-selected="monthNum == user.birthday.month">{{monthName}}</option>
+								</select>
+							</div>
+							<div class="col-sm-4 col-xs-4">									
+								<select ng-model="user.birthday.day">
+									<option value="0">DAY</option>
+									<option ng-repeat="dayNum in dictionary.days"
+											ng-value="dayNum" ng-selected="dayNum == user.birthday.day">{{dayNum}}</option>
+								</select>
+							</div>
+							<div class="col-sm-4 col-xs-4" style="padding-left: 0">																	
+								<select ng-model="user.birthday.year">
+									<option value="0">YEAR</option>
+									<option ng-repeat="year in dictionary.years"
+											ng-value="year" ng-selected="year == user.birthday.year">{{year}}</option>
+								</select>
 							</div>					
 						</div>
-						<a class="btn-primary " ng-click="acctMgr.loadAcct2()">Next</a>
+						<a class="btn-primary " ng-click="acctController.saveAndProgress()">Next</a>
 					</div>
 					
-					<div ng-if="acctMgr.step == 2">
-						<label>Who are you? ({{acctMgr.charsRemaining}} chars)</label>
+					<div ng-if="acctController.step == 2">
+						<label>Who are you? ({{acctController.charsRemaining}} chars)</label>
 						<textarea class="bio" ng-model="user.bio"></textarea>
-						<a class="btn-primary " ng-click="loadView('browse')">Start Meeting People</a>
+						<a class="btn-primary " ng-click="acctController.saveAndProgress()">Start Meeting People</a>
 					</div>
 				</div>
 				
 				<!-- BROWSE CHECK-INS INTERFACE -->
-				<div ng-if="view == 'browse'">
-					<a class="btn-primary " ng-click="checkinCreator.open()">Check In!</a>
-				
-					<div class="checkinList">
-						<div class="checkin clearfix" ng-click="loadPerson(1)">
+				<div ng-if="view == 'feed'">
+					<div class="checkinList primaryFrame panel panel-default">
+						<div class="checkin clearfix" ng-repeat="checkin in feedController.feedList"
+							ng-click="personController.openFromCheckin(checkin)">
 							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
+								<img ng-src="//graph.facebook.com/{{checkin.fbid}}/picture" />
 							</div>
 							<div class="text">
-								Rob Korobkin
+								<div class="name">
+									{{checkin.first_name}} {{checkin.last_name}}
+								</div>
+								<div class="info">
+									{{ checkin.dateObj | date:'MMM. d - h:ma'}} - {{checkin.location}}
+								</div>
 							</div>
-						</div>
-						<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>						
-						<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>						
-						<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>						
-						<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>						
-						<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>
-						<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>						
-						<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>						
-						<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>						
-						<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>						
-<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>
-						<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>						
-						<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>						
-						<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>						
-						<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>						
-<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>
-						<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>						
-						<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>						
-						<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>						
-						<div class="checkin clearfix">
-							<div class="icon">
-								<img src="https://s3.amazonaws.com/uifaces/faces/twitter/stevedesigner/128.jpg" />
-							</div>
-							<div class="text">
-								Rob Korobkin
-							</div>
-						</div>																		
+						</div>																	
 					</div>
 				</div>
 				
 				<!-- PERSON INTERFACE -->
 				<div ng-if="view == 'person'" class="personView">
-					<div ng-if="screen = 'main'">
-						<h3>{{currentPerson.name}}</h3>
-						<img class="featureProfilePic" ng-src="{{currentPerson.pics.big}}" />
+					<div ng-if="screen == 'profile'" class=" panel panel-default primaryFrame">
+						<h3>{{selected_person.first_name}} {{selected_person.last_name}}</h3>
+						<img class="featureProfilePic" 
+							ng-src="//graph.facebook.com/{{selected_person.fbid}}/picture?type=large" />
 						<div class="checkinInfo">
 							<b>Last Check-In:</b>
-							<br /><i>5:54pm</i>
-							<br /><i>Arabica Coffee</i>							
+							<br />{{selected_person.lastCheckin.dateObj | date:'MMM. d - h:ma'}}
+							<br />{{selected_person.lastCheckin.location}}		
 						</div>
 						<div class="smallBtns row">
-							<div class="col-md-2">&nbsp;</div>
-							<div class="col-md-4" class="padding-right: 8px;">
-								<a class="btn-primary green">Message</a>
+							<div class="col-sm-4 col-sm-offset-2 col-xs-6" class="padding-right: 8px;">
+								<a class="btn btn-raised btn-success" 
+									ng-click="personController.openChat()">Message</a>
 							</div>
-							<div class="col-md-4" style="padding-left: 8px;">
-								<a class="btn-primary red">Block</a>
+							<div class="col-sm-4 col-xs-6" style="padding-left: 8px;">
+								<a class="btn btn-raised btn-warning" 
+									ng-click="personController.blockUser()">Block</a>
 							</div>
-							<div class="col-md-2">&nbsp;</div>
 						</div>
-						
 						<div class="profile">
-							<p>{{currentPerson.bio}}</p>						
+							<p>{{selected_person.bio}}</p>						
 						</div>
-						
+					</div>
+					<div ng-if="screen == 'chat'" >
+						<div class="dialogueFrame">
+							<div class="me speech">What's up dude?</div>
+							<div class="them speech">Nothin...</div>
+							<div class="them speech">You?</div>
+							<div class="me speech">Chilling!!!</div>
+						</div>
 					</div>
 				</div>
 				
 				
 			</div>
 
-			<!-- FOOTER -->
-			<div class="footer">
-				Link Link Link
-			</div>	
 		</div>
+
+		<!-- FOOTER -->
+		<div class="footer" ng-if="footer.show">
+			<div class="col-sm-4 col-xs-12" style="margin: 0px auto; float: none;">
+				<div class="col-sm-3 col-xs-3 link checkIn" ng-click="checkinController.open()">
+					<i class="glyphicon glyphicon-edit"></i>
+					<div>Check-In</div>
+				</div>
+				<div class="col-sm-3 col-xs-3 link feed" ng-click="feedController.open()">
+					<i class="glyphicon glyphicon-globe"></i>
+					<div>Feed</div>
+				</div>
+				<div class="col-sm-3 col-xs-3 link search" ng-click="loadView('search')">
+					<i class="glyphicon glyphicon-search"></i>
+					<div>Search</div>
+				</div>
+				<div class="col-sm-3 col-xs-3 link account" ng-click="loadView('account')">
+					<i class="glyphicon glyphicon-user"></i>
+					<div>Account</div>
+				</div>
+			</div>
+		</div>	
 		
 		<!-- MODAL TEMPLATES -->
 		<div style="display: none;">
 
-			<!-- CHECKIN MODAL -->
-			<div id="modal_checkin">
-				I AM THE MODAL CHECKIN, HAHAHAH
-			</div>
+			
 			
 		</div>		
 	</body>

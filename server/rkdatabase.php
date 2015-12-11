@@ -7,7 +7,7 @@
 
 			// Create connection
 			$this -> conn = new mysqli($servername, $username, $password, $database);
-			
+			$this -> debugMode = false;
 			
 			if ($this -> conn->connect_error) {
 				die("Connection failed: " . $this -> conn -> connect_error);
@@ -59,10 +59,12 @@
 			$sql .= ' WHERE ' . implode(' AND ', $whereStrs);
 	
 			// run query
+			if($this -> debugMode) echo $sql;
 			$this -> run_query($sql);
 			
 			// return updated object
 			$sql = 'SELECT * FROM ' . $table . ' WHERE ' . implode(' AND ', $whereStrs);
+			if($this -> debugMode) echo "\n\n\n $sql \n\n\n";
 			return $this -> get_row($sql);
 		}
 	

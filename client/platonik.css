@@ -1,4 +1,11 @@
-body			{ margin: 0; font-family: 'infiniregular',Helvetica,Arial,sans-serif; background: #efede7; }
+
+/*
+	AVAILABLE FONTS
+		- font-family: 'infiniregular',Helvetica,Arial,sans-serif;
+		- font-family: 'Open Sans', sans-serif;
+*/
+
+body			{ margin: 0; font-family: 'Open Sans', sans-serif;  background: #efede7; }
 a				{ cursor: pointer; }
 img				{ display: block; }
 
@@ -21,20 +28,22 @@ img				{ display: block; }
 .loginTop .title 		{ font-size: 20px; text-align: center; }
 
 
-/* HEADER */
-.header 	{ position: fixed; left: 0px; top: 0px; height: 40px; line-height: 40px; width: 100%; z-index: 5; background: white; color: #777; border-bottom: solid 1px #ccc; }
-.header a		{ color: #777; }
-.header .center { text-align: center; }
-
-
 /* FOOTER */
-.footer	{ position: fixed; left: 0px; bottom: 0px; height: 40px; line-height: 40px; width: 100%; z-index: 5; background: white; color: #777; border-top: solid 1px #ccc; }
-
+.footer						{ position: fixed; left: 0px; bottom: 0px; height: 45px; line-height: 32px; width: 100%; 
+								z-index: 5; background: white; color: #777; border-top: solid 1px #ccc; font-size: 18px; }
+.footer .link:first-child 	{ border-left: none; }
+.footer .link 				{ text-align: center; cursor: pointer; border-left: dashed 1px #ccc; height: 45px; }
+.footer .link:hover 		{ color: black; }
+.footer .link div 			{ font-size: 10px; color: #777; line-height: 4px; }
+.footer .link:hover  div	{ color: black; }
+.footer .link.active		{ color: #3b5998 !important; }
+.footer .link.active div	{ color: #3b5998 !important; }
 
 /* MAIN CONTENT */
 .mainContent 			{ }
 .mainContent.padTop		{ padding-top: 60px; }
 .mainContent.padBottom	{ padding-bottom: 60px; }
+.primaryFrame			{ padding: 0 16px; margin-top: 15px; }
 
 /* EDIT ACCOUNT */
 .mainContent input		{ width: 100%; display: block; height: 40px; font-size: 14px; margin-top: 7px; padding-left: 8px; }
@@ -42,26 +51,49 @@ img				{ display: block; }
 .mainContent .btn-primary	{ display: block; height: 40px; line-height: 40px; text-align: center; font-size: 14px; margin-top: 7px; width: 100%; }
 .mainContent .bio 		{ display: block; width: 100%; height: 400px; }
 
+/* MAKE CHECKIN */
+.checkinImage		{ display: block; margin: 4px auto; max-width: 100%; }
+
 /* BROWSE CHECKINS */
-.checkinList		{ background: white; min-height: 100%; padding: 0 16px; margin-top: 15px; border: solid 1px #ccc; }
+.checkinList		{ min-height: 100%; }
 .checkin 			{ padding: 8px 0; border-bottom: dashed 1px #ccc; }
 .checkin:last-child { border-bottom: none; }
 .checkin .icon 		{ float: left; margin-right: 16px; }
 .checkin .icon img	{ border-radius: 50%; height: 50px; width: 50px; }
-.checkin .text		{ float: left; line-height: 50px; font-size: 14px; }
+.checkin .text		{ float: left; }
+.checkin .name		{ line-height: 30px; font-size: 17px; }
+.checkin .info		{ line-height: 20px; font-size: 11px; font-family: 'Open Sans', sans-serif; }
 
 
 /* PERSON PAGE */
 .personView 						{ }
-.personView h3						{ text-align: center; }
+.personView h3						{ text-align: center; padding-top: 10px;  font-family: 'infiniregular',Helvetica,Arial,sans-serif; margin-top: 0}
 .personView .featureProfilePic		{ max-width: 50%; margin: 0px auto; border-radius: 10px;  }
-.personView .checkinInfo			{ text-align: center; margin: 10px 0 0; }
-.personView .smallBtns div			{ padding: 0px; }
-.personView .smallBtns a.red		{ background: #660000 !important; }
-.personView .smallBtns a.green		{ background: green !important; }
+.personView .checkinInfo			{ text-align: center; margin: 10px 0 0; font-family: 'Open Sans', sans-serif; }
+.personView .smallBtns .btn			{ margin: 20px auto; }
+
 .personView .profile				{ width: 70%; margin: 20px auto; text-align: center; }
 
 
+/* CHAT */
+.chatHeader 			{ position: fixed; left: 0px; top: 0px; height: 50px; line-height: 45px; width: 100%; 
+							z-index: 5; background: white; color: #777; border-bottom: solid 1px #ccc; }
+.chatHeader a			{ color: #777; }
+.chatHeader .center 	{ text-align: center; font-size: 13px; font-family: 'infiniregular',Helvetica,Arial,sans-serif; }
+.chatHeader .personIcon { float: right; height: 50px; padding: 8px }
+.btn.btn-fab-micro			{ height: 25px; width: 25px; min-width: 25px; }
+.btn-fab-micro .material-icons	{ font-size: 15px; }
 
+
+.chatInput 				{ position: fixed; left: 0px; bottom: 0px; height: 60px; width: 100%; 
+							z-index: 5; background: white; color: #777; border-top: solid 1px #ccc; }
+.chatInput textarea		{ margin: 5px; display: block; width: 100%; height: 54px; margin: 3px 0; 
+							padding: 5px; font-size: 11px; color: black; }
+.chatInput a			{ font-size: 11px; padding: 0; line-height: 60px; margin: 0; display: block; text-align: center; }
+
+.dialogueFrame 			{ }
+.dialogueFrame .speech	{ clear: both; border-radius: 5px; padding: 5px 10px; margin: 4px 0; font-size: 11px; line-height: 14px; }
+.dialogueFrame .me		{ float: right; background: green; color: white; }
+.dialogueFrame .them	{ float: left; background: #ccc; }
 
 
