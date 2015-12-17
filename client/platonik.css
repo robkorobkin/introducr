@@ -4,10 +4,14 @@
 		- font-family: 'infiniregular',Helvetica,Arial,sans-serif;
 		- font-family: 'Open Sans', sans-serif;
 */
+html 			{ height: 100%; }
 
-body			{ margin: 0; font-family: 'Open Sans', sans-serif;  background: #efede7; }
+body			{ 	margin: 0; font-family: 'Open Sans', sans-serif;  background: #efede7; 
+					display: flex; flex-direction: column; height: 100%; overflow: hidden; width: 100%; }
 a				{ cursor: pointer; }
 img				{ display: block; }
+
+.scrollable{min-height:0;-webkit-box-flex:1;box-flex:1;-webkit-flex:1;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 
 
 /* LOADING */
@@ -29,8 +33,8 @@ img				{ display: block; }
 
 
 /* FOOTER */
-.footer						{ position: fixed; left: 0px; bottom: 0px; height: 45px; line-height: 32px; width: 100%; 
-								z-index: 5; background: white; color: #777; border-top: solid 1px #ccc; font-size: 18px; }
+.footer						{ display: flex; flex-direction: row; height: 45px; line-height: 32px; width: 100%; 
+								background: white; color: #777; border-top: solid 1px #ccc; font-size: 18px; }
 .footer .link:first-child 	{ border-left: none; }
 .footer .link 				{ text-align: center; cursor: pointer; border-left: dashed 1px #ccc; height: 45px; }
 .footer .link:hover 		{ color: black; }
@@ -40,6 +44,7 @@ img				{ display: block; }
 .footer .link.active div	{ color: #3b5998 !important; }
 
 /* MAIN CONTENT */
+.appFrame 				{ flex: 1 1 0;  }
 .mainContent 			{ }
 .mainContent.padTop		{ padding-top: 60px; }
 .mainContent.padBottom	{ padding-bottom: 60px; }
@@ -76,8 +81,8 @@ img				{ display: block; }
 
 
 /* CHAT */
-.chatHeader 			{ position: fixed; left: 0px; top: 0px; height: 50px; line-height: 45px; width: 100%; 
-							z-index: 5; background: white; color: #777; border-bottom: solid 1px #ccc; }
+.chatHeader 			{ display: flex; flex-direction: row;  height: 50px; line-height: 45px; width: 100%; 
+							background: white; color: #777; border-bottom: solid 1px #ccc; }
 .chatHeader a			{ color: #777; }
 .chatHeader .center 	{ text-align: center; font-size: 13px; font-family: 'infiniregular',Helvetica,Arial,sans-serif; }
 .chatHeader .personIcon { float: right; height: 50px; padding: 8px }
@@ -85,14 +90,14 @@ img				{ display: block; }
 .btn-fab-micro .material-icons	{ font-size: 15px; }
 
 
-.chatInput 				{ position: fixed; left: 0px; bottom: 0px; height: 60px; width: 100%; 
+.chatInput 				{ display: flex; flex-direction: row; height: 60px; width: 100%; 
 							z-index: 5; background: white; color: #777; border-top: solid 1px #ccc; }
 .chatInput textarea		{ margin: 5px; display: block; width: 100%; height: 54px; margin: 3px 0; 
 							padding: 5px; font-size: 11px; color: black; }
 .chatInput a			{ font-size: 11px; padding: 0; line-height: 60px; margin: 0; display: block; text-align: center; }
 
-.dialogueFrame 			{ }
-.dialogueFrame .speech	{ clear: both; border-radius: 5px; padding: 5px 10px; margin: 4px 0; font-size: 11px; line-height: 14px; }
+.dialogueFrame 			{ padding: 10px 0;}
+.dialogueFrame .speech	{ clear: both; border-radius: 5px; padding: 5px 10px; margin: 4px 0; font-size: 15px; line-height: 18px; }
 .dialogueFrame .me		{ float: right; background: green; color: white; }
 .dialogueFrame .them	{ float: left; background: #ccc; }
 

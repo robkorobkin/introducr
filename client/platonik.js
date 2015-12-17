@@ -41,7 +41,7 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 				show : false
 			}
 			$scope.footer = {
-				show : true
+				show : false
 			}
 
 			// init socket controller
@@ -68,9 +68,12 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 		$scope.apiClient = {
 			
 			postData : function(request, f){
-				request.uid = $scope.user.uid;
+				if("user" in $scope) request.uid = $scope.user.uid;
 				$.post('platonik.php', request, function(response){
-					if(f) f(response);
+					if('error' in response && response.error == "logged out"){
+						 $scope.cookieMonster.clear();
+					}
+					else if(f) f(response);
 				}, 'json');
 			}
 		
@@ -81,28 +84,36 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 		$scope.cookieMonster = {
 			save : function(){
 				localStorageService.set('user', $scope.user);
+				$scope.socketController.register();
 			},
 			load : function(){
 				var user = localStorageService.get('user');
-				console.log(user);
 				if(user) {
 					$scope.user = user;
 					$scope.feedController.open();
 					$scope.loaded = true;
+					$scope.socketController.register();					
 				}
+			},
+			clear : function(){
+				localStorageService.set('user', false);
+				$scope.user = false;
+				$scope.acctController.loadLoginScreen();
 			}
 		}
 		
 
 		// VIEW MANAGER / ROUTER
 		$scope.loadView = function(view, screen){
-				
+			
+			if(view == "loading" || view == "login") $scope.footer.show = false;
+			else $scope.footer.show = true;
+			
 			$scope.view = view;
 			if(screen) $scope.screen = screen;
 
 			// update footer view
-			$('.footer .link').removeClass('active');
-			$('.footer .' + view).addClass('active');	
+			$scope.currentComponent = view;
 			
 		}
 
@@ -113,6 +124,12 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 			step : 1,
 			
 			charsRemaining : 300,
+			
+			loadLoginScreen : function(){
+				$scope.header.show = false;
+				$scope.loadView('login');
+				$scope.$digest();
+			},
 			
 			saveAndProgress : function(){
 
@@ -193,11 +210,10 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 
 						$scope.feedController.feedList.push(checkin);
 					});
-					
+
 					this.status = "loaded";
 					$scope.$digest();
 				});			
-			
 
 			},
 			
@@ -235,11 +251,33 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 		
 			openChat : function(){
 				$scope.screen = 'chat';
+				
+				// can we get this from cache?  close and open app?
+				this.currentText = {
+					content : ''
+				};
 				$scope.footer.show = false;
 				$scope.header.show = true;
+			},
+			
+			sendChat : function(){
+				
+				// send message
+				var request = {
+					verb : "postMessage",
+					message : {	
+						senderId : $scope.user.uid,
+						targetId : $scope.selected_person.uid,
+						content : this.currentText.content
+					}
+				} 
+				$scope.socketController.send(request);
+	
+			
+				// update view
+				// ...
 			}
-		
-		
+
 		}
 		
 		
@@ -247,16 +285,24 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 		// SOCKET STUFF
 
 		$scope.socketController = {
+			
+			isOpen : false,
 		
 			init : function(socketPath) {
-				var host = socketPath; // SET THIS TO YOUR SERVER
+				var host = socketPath; 
 				try {
 					this.socket = new WebSocket(host);
+					this.socket.self = this;
 					
 					this.socket.onopen = function(msg) { 
+						$scope.socketController.isOpen = true;
+						if("user" in $scope) $scope.socketController.register();
 					};
 							   
-					this.socket.onmessage = function(msg) { 
+					this.socket.onmessage = function(response) { 
+						var data = response.data
+						console.log(data);
+					
 					};
 							   
 					this.socket.onclose   = function(msg) { 
@@ -268,9 +314,22 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 				}
 			},
 
-			send : function(){
+			register : function(){
+				if(this.isOpen) {
+					var req = {
+						verb : "register",
+						uid : $scope.user.uid
+					}
+					this.send(req);
+				}
+			},
+			
+			send : function(req){
 				try { 
-					this.socket.send(msg); 
+					if("user" in $scope) req.uid = $scope.user.uid;
+					var message = angular.toJson(req);
+					console.log(message);
+					this.socket.send(message); 
 				} catch(ex) { 
 					console.log(ex); 
 				}
@@ -330,11 +389,21 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 								access_token: $scope.fbData.access_token,
 								verb: "loginUser"
 							}
+							
 							$scope.apiClient.postData(request, function(response){
-								$scope.user = response.user;								
-								if($scope.user.isNew && !$scope.loaded){
-									$scope.loadView('account');
-								}
+								$scope.user = response.user;
+								$scope.cookieMonster.save();
+							
+								
+								if(!$scope.loaded){							
+									if($scope.user.isNew){
+										$scope.loadView('account');
+									}
+									else {
+										$scope.loadView('feed');
+									}
+									$scope.$digest();
+								}	
 							});
 						
 							FB.api(user.id + '/friends', function(response) {
@@ -365,13 +434,12 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 			
 			// triggers authResponseChange
 			FB.login(function(){
-			}, {scope: 'email,user_friends,user_about_me,user_location,user_photos, user_birthday'});	
+			}, {scope: 'email,user_friends,user_about_me,user_location, user_birthday'});	
 		}
 	
 		$scope.logout = function(){
 			FB.logout();	// triggers authResponseChange
-			$scope.loadInterface('good_bye');
-			$scope.user = {};
+			$scope.cookieMonster.clear();
 		 }
 	
 		// reset user obj, called on auth change to neg
@@ -379,9 +447,7 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 			$scope.fbData = {
 				status: 'unconnected'
 			}
-			$scope.stage = 'login';
-			$scope.$digest();
-
+			$scope.cookieMonster.clear();
 		}
 
 		///////////////////////////////////////////////////////////////////////////////////

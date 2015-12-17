@@ -4,7 +4,7 @@
 
 		function __construct($config){
 			extract($config);
-
+			
 			// Create connection
 			$this -> conn = new mysqli($servername, $username, $password, $database);
 			$this -> debugMode = false;
@@ -27,16 +27,23 @@
 		function get_var($sql){
 			$result = $this -> conn -> query($sql);
 			 $row = $result -> fetch_array();
-			 return $row[0];
+			 return $row ? $row[0] : false;
 		}
 
 		function get_row($sql){
 			$result = $this -> conn -> query($sql);
-			return $result -> fetch_assoc();
+			return ($result) ? $result -> fetch_assoc() : array();
+		}
+		
+		function get_rowFromObj($where, $table){
+			foreach($where as $k => $v) $whereStrs[] = $k . '=' . $v;
+			$sql = 'select * from ' . $table . ' where ' . implode(' AND ', $whereStrs);
+			return $this -> get_row($sql);
 		}
 	
 		function get_results($sql){
 			$result = $this -> conn -> query($sql);
+			$response = array();
 			while($response[] = $result -> fetch_assoc());
 			unset($response[count($response) -1]);
 			return $response;
@@ -85,4 +92,38 @@
 
 		}
 
+
+		function updateOrCreate($update, $table, $where){
+			
+			// look for it?
+			$row = $this -> get_rowFromObj($where, $table);
+			
+			// if it's not there, add it!
+			if(count($row) == 0){
+				$newObject = $update;
+				foreach($where as $k => $v) $newObject[$k] = $v;
+				$this -> insert($newObject, $table);
+			}
+		
+			// otherwise, update it
+			else {
+				$this -> update($update, $table, $where);
+			}
+			
+		}
+
+
+		function  getOrCreate($obj, $table){
+			
+			// look for it?
+			$row = $this -> get_rowFromObj($obj, $table);
+			
+			// if it's there, return it!
+			if(count($row) == 1) return $row;
+			
+			// otherwise, create it!
+			$this -> insert($obj, $table);
+			return $obj;
+
+		}
 	}

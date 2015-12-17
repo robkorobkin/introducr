@@ -1,7 +1,15 @@
 <?php
 
+	// SET COOKIES TO PERSIST FOR A WEEK (UNLESS MANUALLY LOGGED OUT)
+	// VITAL FOR MOBILE - OTHERWISE PERSON GETS LOGGED OUT EVERY TIME THEY CLOSE THE APP
+	ini_set('session.cookie_lifetime', 60 * 60 * 24 * 7);  // 7 day cookie lifetime
+	session_start();
+
+	
+
+
 	$config = array();
-	if(strpos(getCwd(), "machigonne") !== false) $environment = "dev";
+	if(strpos(getCwd(), "machigon") !== false) $environment = "dev";
 	else $environment = "local";
 	
 	switch($environment) {
@@ -9,7 +17,7 @@
 		// localhost configuration
 		case "local" : 
 			$config["database"] = array(
-				"servername" => "localhost", 
+				"servername" => 'localhost', 
 				"username" => "root", 
 				"password" => "root",
 				"database" => "platonik"
@@ -21,9 +29,12 @@
 		// development environment configuration
 		case "dev" : 
 			$config["database"] = array(
-				"servername" => "localhost"
+				"servername" => "localhost",
+				"username" => "machigon_introdu", 
+				"password" => "Introducr!",
+				"database" => "machigon_introducr"
 			);
-			$config["facebook"]["appId"] = '1677520382526932';
+			$config["facebook"]["appId"] = '1088503254517685';
 		break;
 
 		
