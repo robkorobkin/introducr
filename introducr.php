@@ -1,7 +1,7 @@
 <?php
-	require_once("platonik-config.php");
+	require_once("introducr-config.php");
 	require_once("server/rkdatabase.php");
-	require_once("server/platonik_api.php");
+	require_once("server/introducr_api.php");
 
 
 
@@ -14,9 +14,7 @@
 
 ///////////////////////////////////
 	
-	$api = new PlatonikAPI($platonik_config);
-
-	$api -> postMessage();
+	$api = new introducrAPI($introducr_config);
 
 	// LOAD STATIC ASSETS
 	if(isset($_GET['lib'])) {

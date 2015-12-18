@@ -1,6 +1,6 @@
 <?php
 
-	Class PlatonikAPI {
+	Class introducrAPI {
 		
 		function __construct($config){
 			$this -> config = $config;
@@ -12,16 +12,15 @@
 			echo 'var dictionary=' . json_encode($this -> config['dictionary']) . ';';
 			echo 'var fb_config=' . json_encode($this -> config['facebook']) . ';';
 			echo 'var socket_path="' . $this -> config['socketPath'] . '";';
-			echo file_get_contents('client/platonik.js');
+			echo file_get_contents('client/introducr.js');
 		}
 		
 		function printCSS(){
 			header('Content-type: text/css');
-			echo file_get_contents('client/platonik.css');
+			echo file_get_contents('client/introducr.css');
 		}
 		
 		
-
 
 
 
@@ -79,15 +78,34 @@
 			extract($this -> request);
 			
 			$checkins = $this -> _getCheckins($search_params);
-			for($i = 0; $i < 10; $i++){
-				$checkins[] = $checkins[0];
-			}
 			
 			return array(
 				"checkins" => $checkins
 			);
 		}
 
+		function loadChat(){
+			extract($this -> request);
+			$me = (int) $this -> uid;
+			$you = (int) $chat_request['partner'];
+
+			$sql = "SELECT * FROM messages where (senderId=$me and targetId=$you) or (targetId=$me and senderId=$you) order by messageDate ASC";
+			$conversation = $this -> db -> get_results($sql);
+
+
+			$youFull = $this -> _getUserByUid($you);
+
+			// GET RELATIONSHIP? (SKIP FOR NOW)
+			//$sql = "SELECT * FROM relationships where "
+			//$relationship 
+
+			return array(
+				"conversation" => $conversation,
+				"partner" => $you
+			);
+
+
+		}
 
 
 		/************************************************************************************************
@@ -111,7 +129,7 @@
 		}
 	
 		function _loadUser($user){
-			
+		
 			$birthdayUnix = strtotime($user['birthday']);
 		
 			if($birthdayUnix != 0){
@@ -203,31 +221,37 @@
 		}
 	
 	
-	
-		function postMessage(){
+		/************************************************************************************************
+		*	SOCKET STUFF
+		*	- postMessage($message)
+		*
+		************************************************************************************************/
+
+
+		function postMessage($message){
+
 		
-			$senderUid = (int) 34;
-		
-			$message = array(
-				"senderUid" => 34,
-				"targetId" => 33,
-				"message" => "this is text"
-			);
-		
-			$targetUid = (int) $message['targetId'];
+			// open the payload
+			extract($message); 
+
 			$now = date("Y-m-d H:i:s");
 
 		
 			// get target's relationship with sender
 			$rToSender = array(
-				"selfId" => $targetUid,
-				"otherId" => $senderUid
+				"selfId" => $targetId,
+				"otherId" => $senderId
 			);		
-			$rToSender = $this -> db -> getOrCreate($rToSender, "relationships");
+			$rToSenderRow = $this -> db -> getOrCreate($rToSender, "relationships");
 
 
 			// bail if person has been blocked		
-			if($rToSender['hasBlocked']) $this -> log_error($sender, "target has blocked you");
+			if($rToSenderRow['hasBlocked']) {
+				return array(
+					"status" => "error",
+					"error_message" => "target has blocked you"
+				);
+			}
 		
 			// record message
 			$insert_id = $this -> db -> insert($message, "messages");
@@ -236,26 +260,12 @@
 		
 			// update relationship: target -> sender
 			$update = array(
-				"numUnread" => ($rToSender['numUnread'] + 1),
-				'lastMessageDate' => $now
+				"numUnread" => ($rToSenderRow['numUnread'] + 1),
+				'lastMessageDate' => $now,
+				"status" => "active"
 			);
 			$this -> db -> update($update, "relationships", $rToSender);
 		
-		
-		
-			// notify other user
-			if(isset($this -> uidHash[$targetUid])) {
-				$isOnline = true;
-				$notification = array(
-					"subject" => "new message",
-					"body" => $message
-				);
-				$this -> send($this -> uidHash[$targetUid], json_encode($notification));
-			}
-			else {
-				$isOnline = false;
-			}
-
 
 			// create / update relationship: sender -> target
 			$rFromSender = array(
@@ -269,12 +279,13 @@
 			);
 			$this -> db -> updateOrCreate($update, "relationships", $rFromSender);
 
+			return array(
+				"status" => "success",
+				"message" => $message
+			);
 
-		
-		
-		
-		
 		}
+		
 	
 	
 	

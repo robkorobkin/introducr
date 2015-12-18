@@ -8,10 +8,16 @@
 			// Create connection
 			$this -> conn = new mysqli($servername, $username, $password, $database);
 			$this -> debugMode = false;
+			$this -> mode = "shell";
+			
 			
 			if ($this -> conn->connect_error) {
 				die("Connection failed: " . $this -> conn -> connect_error);
 			}
+		}
+
+		function _linebreak(){
+			return ($this -> mode == "shell") ? "\n\n" : "<br /><br />\n\n";
 		}
 		
 		function close(){
@@ -38,6 +44,7 @@
 		function get_rowFromObj($where, $table){
 			foreach($where as $k => $v) $whereStrs[] = $k . '=' . $v;
 			$sql = 'select * from ' . $table . ' where ' . implode(' AND ', $whereStrs);
+			if($this -> debugMode) echo $sql . $this -> _linebreak();
 			return $this -> get_row($sql);
 		}
 	
@@ -65,13 +72,13 @@
 			}
 			$sql .= ' WHERE ' . implode(' AND ', $whereStrs);
 	
-			// run query
-			if($this -> debugMode) echo $sql;
+			// run query 
+			if($this -> debugMode) echo $sql . $this -> _linebreak();
 			$this -> run_query($sql);
 			
 			// return updated object
 			$sql = 'SELECT * FROM ' . $table . ' WHERE ' . implode(' AND ', $whereStrs);
-			if($this -> debugMode) echo "\n\n\n $sql \n\n\n";
+			if($this -> debugMode) echo $sql . $this -> _linebreak();
 			return $this -> get_row($sql);
 		}
 	
@@ -84,6 +91,9 @@
 			$sql = 	'INSERT INTO ' . $table . 
 					' (' . implode(',', $kstrs) . ') VALUES (' . implode(',', $vstrs) . ')';
 			
+			if($this -> debugMode) echo $sql . $this -> _linebreak();
+
+
 			// run query
 			$this -> run_query($sql);		
 			
@@ -117,9 +127,11 @@
 			
 			// look for it?
 			$row = $this -> get_rowFromObj($obj, $table);
+
+
 			
 			// if it's there, return it!
-			if(count($row) == 1) return $row;
+			if(count($row) != 0) return $row;
 			
 			// otherwise, create it!
 			$this -> insert($obj, $table);

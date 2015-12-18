@@ -42,6 +42,8 @@ abstract class WebSocketServer {
     if ($user->handshake) {
       $message = $this->frame($message,$user);
       $result = @socket_write($user->socket, $message, strlen($message));
+      echo "\n\n\n THIS IS THE STATUS OF THE TRANSMISSION \n\n";
+      print_R($result);
     }
     else {
       // User has not yet performed their handshake.  Store for sending later.

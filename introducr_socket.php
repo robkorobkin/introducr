@@ -2,7 +2,8 @@
 <?php
 
 require_once('server/sockets/websockets.php');
-require_once("platonik-config.php");
+require_once("introducr-config.php");
+require_once("server/introducr_api.php");
 require_once('server/rkdatabase.php');
 
 
@@ -32,6 +33,8 @@ class introducrSocketServer extends WebSocketServer {
 
 		// update user hash
 		$this -> uidHash[$uid] = $sender;
+		print_R($this -> uidHash);
+
 		
 
 		// run request		
@@ -48,84 +51,12 @@ class introducrSocketServer extends WebSocketServer {
 	}
 	
 	
-	protected function postMessage ($sender, $request) {
-		
-		extract($request);
-		
-		$senderUid = (int) $uid;
-		$targetUid = (int) $message['targetId'];
-		$now = date("Y-m-d H:i:s");
-
-		
-		// get target's relationship with sender
-		$rToSender = array(
-			"selfId" => $targetUid,
-			"otherId" => $senderUid
-		);		
-		$rToSender = $this -> db -> getOrCreate($rToSender, "relationships");
-
-
-		// bail if person has been blocked		
-		if($rToSender['hasBlocked']) $this -> log_error($sender, "target has blocked you");
-		
-		// record message
-		$insert_id = $this -> db -> insert($message, "messages");
-		$message = $this -> db -> get_rowFromObj(array("messageId" => $insert_id), "messages");
-		
-		
-		// update relationship: target -> sender
-		$update = array(
-			"numUnread" => ($rToSender['numUnread'] + 1),
-			'lastMessageDate' => $now
-		);
-		$this -> db -> update($update, "relationships", $rToSender);
-		
-		
-		
-		// notify other user
-		if(isset($this -> uidHash[$targetUid])) {
-			$isOnline = true;
-			$notification = array(
-				"subject" => "new message",
-				"body" => $message
-			);
-			$this -> send($this -> uidHash[$targetUid], json_encode($notification));
-		}
-		else {
-			$isOnline = false;
-		}
-
-
-		// create / update relationship: sender -> target
-		$rFromSender = array(
-			"selfId" => $senderId,
-			"otherId" => $targetId
-		);
-		$update = array(
-			"status" => "active",
-			"lastMessageDate" => $now,
-			"lastCheckedDate" => $now
-		);
-		$this -> db -> updateOrCreate($update, "relationships", $rFromSender);
-
-
-		// push confirmations
-		$notification = array(
-			"subject" => "message sent",
-			"message" => $message
-		);
-		$this -> send($this -> uidHash[$targetUid], json_encode($notification));
-
-	}
-	
 	
 	
 	
 	
 	protected function connected ($user) {
-		$this -> stdout("ABOUT TO PRINT OUT USERS");
-		$this -> stdout(print_r($this -> users, true));
-		$this -> stdout("===============================");		
+		// this is triggered when a new user joins
 	}
 
 	protected function selectUser ($user) {
@@ -138,11 +69,69 @@ class introducrSocketServer extends WebSocketServer {
 		// open files or other objects associated with them.	This runs after the socket 
 		// has been closed, so there is no need to clean up the socket itself here.
 	}
+
+
+	function postMessage($sender, $request){
+
+
+			
+		
+			// open the payload
+			$message = $request['message'];
+			$fromDB = $this -> api -> postMessage($message);
+
+			
+			// if message is successful
+			if($fromDB["status"] == "success"){
+
+				$messageInDB = $fromDB["message"];
+				$targetId = $message['targetId'];
+
+				if(isset($this -> uidHash[$targetId])) {
+					$isOnline = true;
+					$notification = array(
+						"status" => "success",
+						"subject" => "new message",
+						"body" => array(
+							"message" => $messageInDB
+						)
+					);
+					$this -> send($this -> uidHash[$targetId], json_encode($notification));
+				}
+				else {
+					$isOnline = false;
+				}
+
+
+				$response = array(
+					"status" => "success",
+					"subject" => "message sent",
+					"body" => array(
+						"message" => $messageInDB,
+						"isOnline" => $isOnline
+					)
+				);
+
+			} 
+
+			// if it fails to post to db
+			else {
+				$response["status"] = "error";
+				if(isset($fromDB["error_message"])) $response["body"] = $fromDB["error_message"];
+			}
+		
+			
+			// send response
+			$this -> send($sender, json_encode($response));
+
+		
+		}
+
 }
 
-$socketServer = new introducrSocketServer("127.0.0.1","9000");
-
-$socketServer -> db = new RK_mysql($platonik_config['database']);
+$socketServer 			= new introducrSocketServer("127.0.0.1","9000");
+$socketServer -> api 	= new introducrAPI($introducr_config);
+$socketServer -> db 	= new RK_mysql($introducr_config['database']);
 
 try {
 	$socketServer -> run();

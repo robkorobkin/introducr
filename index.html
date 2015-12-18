@@ -56,11 +56,11 @@
 
 		
 		<!-- APP -->
-		<script src="platonik.php?lib=js"></script>
-		<link href="platonik.php?lib=css" rel="stylesheet" type="text/css" />
+		<script src="introducr.php?lib=js"></script>
+		<link href="introducr.php?lib=css" rel="stylesheet" type="text/css" />
 	</head>
 	
-	<body  ng-app="PlatonikApp" ng-controller="PlatonikCtrl">
+	<body  ng-app="introducrApp" ng-controller="introducrCtrl">
 	
 		<!-- CHAT CHROME -->
 		<div class="chatHeader" ng-if="screen == 'chat'">
@@ -188,11 +188,11 @@
 					</div>
 				</div>
 				
-				<!-- BROWSE CHECK-INS INTERFACE -->
+				<!-- FEED INTERFACE -->
 				<div ng-if="view == 'feed'">
 					<div class="checkinList primaryFrame panel panel-default">
 						<div class="checkin clearfix" ng-repeat="checkin in feedController.feedList"
-							ng-click="personController.openFromCheckin(checkin)">
+							ng-click="chatController.openFromCheckin(checkin)">
 							<div class="icon">
 								<img ng-src="//graph.facebook.com/{{checkin.fbid}}/picture" />
 							</div>
@@ -222,11 +222,11 @@
 						<div class="smallBtns row">
 							<div class="col-sm-4 col-sm-offset-2 col-xs-6" class="padding-right: 8px;">
 								<a class="btn btn-raised btn-success" 
-									ng-click="personController.openChat()">Message</a>
+									ng-click="chatController.openChat()">Message</a>
 							</div>
 							<div class="col-sm-4 col-xs-6" style="padding-left: 8px;">
 								<a class="btn btn-raised btn-warning" 
-									ng-click="personController.blockUser()">Block</a>
+									ng-click="chatController.blockUser()">Block</a>
 							</div>
 						</div>
 						<div class="profile">
@@ -234,11 +234,14 @@
 						</div>
 					</div>
 					<div ng-if="screen == 'chat'" >
-						<div class="dialogueFrame">
-							<div class="me speech">What's up dude?</div>
-							<div class="them speech">Nothin...</div>
-							<div class="them speech">You?</div>
-							<div class="me speech">Chilling!!!</div>
+						<div class="dialogueFrame clearfix">
+							<div class="speech" ng-repeat="message in currentConversation"
+								ng-class="{
+									me : message.senderId == user.uid,
+									them : message.senderId != user.uid
+								}">
+								{{message.content}}
+							</div>
 						</div>
 					</div>
 				</div>
@@ -278,10 +281,10 @@
 		<div class="chatInput" ng-if="screen == 'chat'">
 			<div class="col-sm-4 col-sm-offset-4 col-xs-12">
 				<div class="col-sm-10 col-xs-10" style="padding-left: 0;">
-					<textarea ng-model="personController.currentText.content"></textarea>
+					<textarea ng-model="chatController.currentText.content"></textarea>
 				</div>
 				<div class="col-sm-2 col-xs-2" style="padding: 0;">
-					<a class="btn btn-success" ng-click="personController.sendChat()">Send</a> 
+					<a class="btn btn-success" ng-click="chatController.sendChat()">Send</a> 
 				</div>
 			</div>
 		</div>

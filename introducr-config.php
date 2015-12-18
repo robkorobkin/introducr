@@ -20,7 +20,7 @@
 				"servername" => 'localhost', 
 				"username" => "root", 
 				"password" => "root",
-				"database" => "platonik"
+				"database" => "introducr"
 			);
 			$config['socketPath'] = "ws://127.0.0.1:9000";
 			$config["facebook"]["appId"] = '926145584145218';
@@ -115,5 +115,5 @@
 	
 	for($year = 2015; $year >= 1915; $year--) $config['dictionary']['years'][] = $year;
 	
-	global $platonik_config;
-	$platonik_config = $config;
+	global $introducr_config;
+	$introducr_config = $config;

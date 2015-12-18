@@ -23,9 +23,9 @@ if (navigator.geolocation) {
 
 
 
-var app = angular.module('PlatonikApp', ['LocalStorageModule']);
+var app = angular.module('introducrApp', ['LocalStorageModule']);
 
-app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$window',  'localStorageService',
+app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$window',  'localStorageService',
 	function($scope, $http, $sce, $rootScope, $window, localStorageService){
 		
 
@@ -35,7 +35,7 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 			$scope.fb_config = fb_config;
 			$scope.here = here;
 			$scope.loaded = false;
-			$scope.appName = 'Platonik';
+			$scope.appName = 'introducr';
 			$scope.view = 'loading';
 			$scope.header = {
 				show : false
@@ -69,7 +69,7 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 			
 			postData : function(request, f){
 				if("user" in $scope) request.uid = $scope.user.uid;
-				$.post('platonik.php', request, function(response){
+				$.post('introducr.php', request, function(response){
 					if('error' in response && response.error == "logged out"){
 						 $scope.cookieMonster.clear();
 					}
@@ -240,7 +240,9 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 		
 		
 		// PERSON MANAGER
-		$scope.personController = {
+		$scope.chatController = {
+
+			chats : {},
 
 			openFromCheckin : function(checkin){
 				$scope.screen = 'profile'; // if chat already going, go straight to chat
@@ -251,6 +253,7 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 		
 			openChat : function(){
 				$scope.screen = 'chat';
+				this.status = "loading";
 				
 				// can we get this from cache?  close and open app?
 				this.currentText = {
@@ -258,6 +261,24 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 				};
 				$scope.footer.show = false;
 				$scope.header.show = true;
+
+				var request = {
+					"verb" : "loadChat",
+					"chat_request" : {
+						"partner" : $scope.selected_person.uid
+					}
+				}
+				$scope.apiClient.postData(request, function(response){
+					$scope.chatController.chats[$scope.selected_person.uid] = {
+						"conversation" : response.conversation,
+						"meta" : {}
+					};
+					$scope.currentConversation = response.conversation;
+					$scope.$digest();
+					$(".appFrame").scrollTop($(".appFrame").height());
+
+				});		
+
 			},
 			
 			sendChat : function(){
@@ -276,6 +297,45 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 			
 				// update view
 				// ...
+			},
+
+			confirmTransmission : function(message){
+				
+				var inConversation = false;
+
+				// you just sent it
+				if(message.senderId == $scope.user.uid){
+					this.chats[message.targetId].conversation.push(message);
+					if($scope.selected_person.uid == message.targetId){
+						this.currentText.content = '';
+						inConversation = true;
+					}
+				}
+
+				// you just received it
+				else if(message.targetId == $scope.user.uid){
+					var senderId = message.senderId;
+					if(senderId in this.chats){
+						this.chats[message.senderId].conversation.push(message);	
+						if($scope.selected_person.uid == message.senderId){
+							inConversation = true;
+						}
+					}
+					else {
+						this.youveGotMail(message);
+					}
+					
+				}
+				$scope.$digest();
+
+				if(inConversation){
+					  $(".appFrame").animate({ scrollTop: $(".appFrame").height() }, "slow");
+				}
+
+			},
+
+			youveGotMail : function(message){
+				alert("you've got mail from user #" + message.senderId);
 			}
 
 		}
@@ -299,13 +359,26 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 						if("user" in $scope) $scope.socketController.register();
 					};
 							   
-					this.socket.onmessage = function(response) { 
-						var data = response.data
-						console.log(data);
+					this.socket.onmessage = function(envelope) { 
+						var message = angular.fromJson(envelope.data);
+
+						console.log("new envelope in the mailbox");
+						console.log(message);
+
+						if(message.status == "success"){
+							switch(message.subject){
+								case "message sent" : case "new message" :
+									$scope.chatController.confirmTransmission(message.body.message);
+								break;
+
+
+							}
+						}
 					
 					};
 							   
 					this.socket.onclose   = function(msg) { 
+						// can we disconnect the user from the server-side hash?
 					};
 					
 				}
@@ -328,7 +401,6 @@ app.controller('PlatonikCtrl', ['$scope', '$http', '$sce', '$rootScope', '$windo
 				try { 
 					if("user" in $scope) req.uid = $scope.user.uid;
 					var message = angular.toJson(req);
-					console.log(message);
 					this.socket.send(message); 
 				} catch(ex) { 
 					console.log(ex); 
