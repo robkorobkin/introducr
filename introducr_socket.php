@@ -30,12 +30,8 @@ class introducrSocketServer extends WebSocketServer {
 
 		if(!$this -> goAhead) return;
 
-
 		// update user hash
 		$this -> uidHash[$uid] = $sender;
-		print_R($this -> uidHash);
-
-		
 
 		// run request		
 		if(isset($verb) && $verb != "register"){
@@ -73,8 +69,6 @@ class introducrSocketServer extends WebSocketServer {
 
 	function postMessage($sender, $request){
 
-
-			
 		
 			// open the payload
 			$message = $request['message'];
