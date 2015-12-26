@@ -9,12 +9,11 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.15/angular.min.js"></script>
 		<script src="client/third_party/angular-local-storage.min.js"></script>
 
-		<script src="client/third_party/inobounce.min.js"></script>
-
 
 		<!-- BOOTSTRAP -->
 		<script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.5/js/bootstrap.min.js"></script>
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" />
+
 
 		<!-- MATERIAL DESIGN -->
 		<script type="text/javascript" src="client/third_party/b-md/arrive.min.js"></script>
@@ -22,6 +21,7 @@
 		<link rel="stylesheet" href="client/third_party/b-md/bootstrap-material-design.min.css" />
 		<script type="text/javascript" src="client/third_party/b-md/ripples.min.js"></script>
 		<link rel="stylesheet" href="client/third_party/b-md/ripples.min.css" />
+		<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 		<script>$.material.init();</script>
 
 	
@@ -29,11 +29,11 @@
 		<link href="client/third_party/fonts/infiniti/stylesheet.css" rel="stylesheet" type="text/css" />		
 		<link href='http://fonts.googleapis.com/css?family=Roboto:400,500' rel='stylesheet' type='text/css'>
 		<link href='https://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
-		<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
 
 		
-		<!-- ADD TO HOMESCREEN -->
+		<!-- IOS STUFF -->
+		<script src="client/third_party/inobounce.min.js"></script>
+
 		<meta name="apple-mobile-web-app-capable" content="yes">
 		<meta name="mobile-web-app-capable" content="yes">
 		<meta name="apple-mobile-web-app-title" content="Add to Home">
@@ -51,11 +51,10 @@
 		<script>addToHomescreen({detectHomescreen: true});</script>
 
 
-
-		
 		<!-- APP -->
 		<script src="introducr.php?lib=js"></script>
 		<link href="introducr.php?lib=css" rel="stylesheet" type="text/css" />
+
 	</head>
 	
 	<body  ng-app="introducrApp" ng-controller="introducrCtrl">
