@@ -11,7 +11,7 @@
 			header('Content-type: text/javascript');
 			echo 'var dictionary=' . json_encode($this -> config['dictionary']) . ';';
 			echo 'var fb_config=' . json_encode($this -> config['facebook']) . ';';
-			echo 'var socket_path="' . $this -> config['socketPath'] . '";';
+			echo 'var socket_params=' . json_encode($this -> config['socket']) . ';';
 			echo file_get_contents('client/introducr.js');
 		}
 		
@@ -61,24 +61,47 @@
 			extract($user["birthday"]);
 			$user['dateModified'] = date("Y-m-d H:i:s");
 			$user['birthday'] = date("Y-m-d H:i:s", strtotime($year . '-' . $month . '-' . $day));
+
+			// resolve discrepencies between client-side and server-side user models
+			unset($user['here']);  // ToDo: store user's last location?
+			unset($user['friendsList']);
+
+			if($user['bio'] != ''){
+				$user['isActive'] = 1;
+				$user['isNew'] = 0;
+			}
+
 			$where = array('uid' => (int) $user['uid']);
-			// $this -> db -> debugMode = true;
 			$this -> db -> update($user, "users", $where);
+
 			return $this ->_getUserByUid($user['uid']);
 		}
 	
 		function postCheckin(){
 			extract($this -> request);
+
+			// post checkin
 			$newCheckin["time"] = date("Y-m-d H:i:s");
 			$newCheckin["uid"] = $this -> uid;
-			$checkinid = $this -> db -> insert($newCheckin, "checkins");
+			$checkinId = $this -> db -> insert($newCheckin, "checkins");
+			
+			// update users
+			$update['lastCheckinId'] = $checkinId;
+			$where['uid'] = $this -> uid;
+			$this -> db -> update($update, "users", $where);
+			print_r($update);
+			print_r($where);
+
+			return $this -> listCheckins();
 		}
 
 		function listCheckins(){
 			extract($this -> request);
-			
-			$checkins = $this -> _getCheckins($search_params);
-			
+			$checkins = array();
+
+			if(isset($search_params)) {
+				$checkins = $this -> _getCheckins($search_params);
+			}
 			return array(
 				"checkins" => $checkins
 			);
@@ -104,7 +127,32 @@
 				"partner" => $you
 			);
 
+		}
 
+		function recordFriends(){
+			extract($this -> request);
+			$userId = $_SESSION['uid'];
+			foreach($friends as $friendFbId){
+				$friend = $this -> _getUserByFbId($friendFbId);
+				$friendId = (int) $friend['uid']; 
+				$update = array("isFriend" => 1);
+				
+				$where = array(
+					"selfId" => $userId,
+					"otherId" => $friendId
+				);
+				$this -> db -> updateOrCreate($update, "relationships", $where);
+
+				$where = array(
+					"selfId" => $friendId,
+					"otherId" => $userId
+				);
+				$this ->  db -> updateOrCreate($update, "relationships", $where);
+			}
+
+			return array(
+				"message" => "Updated relationships for " . count($friends) . " people."
+			);
 		}
 
 
@@ -156,11 +204,102 @@
 		}
 
 		function _getCheckins($search_params){
-			$sql = 'SELECT c.*, u.uid, u.fbid, u.isActive, u.first_name, u.last_name 
-					FROM checkins c, users u
-					WHERE c.uid = u.uid
-					ORDER BY time desc';
-			return $this -> db -> get_results($sql);		
+
+			extract($search_params);
+			$where_strs = [];
+			$orderBy = 'c.time desc';
+
+			// handle sort order - postpone for now
+			if(isset($sortOrder)) {
+				switch($sortOrder) {
+					case "abc" : 
+						$orderBy = 'u.last_name asc';
+					break;
+				}
+			}
+			else {
+				$orderBy = 'c.time desc';
+			}
+
+			if(isset($recents)){
+				$where_strs[] = "r.lastMessageDate != '0000-00-00 00:00:00'";
+				$orderBy = "r.lastMessageDate DESC";
+			}
+			else {
+
+
+
+				if(isset($search_str) && $search_str != "") {
+					$where_strs[] = "(u.first_name LIKE '%$search_str%' OR u.last_name LIKE '%$search_str%')";
+				}
+
+				if(isset($proximity) && $proximity != '' && isset($here)) {
+					extract($here);
+
+					// http://geography.about.com/library/faq/blqzdistancedegree.htm
+					// Each degree of latitude is approximately 69 miles apart.
+					// At 40° north or south (Portland is at 43 N), the distance between a degree of longitude is 53 miles.
+					// So, LAT = +/- (.015 * R); LON = +/- (.02 * R)
+
+					// if browser sends us geocoordinates - if not, maybe get from tracing IP?
+					if(isset($lat) && isset($lon)) {
+						$p = (int) $proximity;
+						$where_strs[] = "c.lat >= " . (float) ($lat - ($p * .015));
+						$where_strs[] = "c.lat <= " . (float) ($lat + ($p * .015));
+						$where_strs[] = "c.lon >= " . (float) ($lon - ($p * .02));
+						$where_strs[] = "c.lon <= " . (float) ($lon + ($p * .02));
+					}
+				}	
+
+				if(isset($gender) && $gender != '') {
+					$opts = array('male', 'female', 'other');
+					if(in_array($gender, $opts)) $where_strs[] = "u.gender='$gender'";
+				}		
+
+				if(isset($age) && $age != '') {
+
+					$year = (int) date("Y");
+
+					$ageRange = explode('_', $age);
+
+					
+					if($ageRange[0] != ''){
+						$ageMin = (int) $ageRange[0];
+						$birthdayMax = ($year - $ageMin) . date("-m-d");
+						$where_strs[] = "u.birthday <= '$birthdayMax'";	
+					} 
+
+					if($ageRange[1] != ''){
+						$ageMax = (int) $ageRange[1];
+						$birthdayMin = ($year - $ageMax) . date("-m-d");
+						$where_strs[] = "u.birthday >= '$birthdayMin'";	
+					}
+
+
+				}		
+
+				if(isset($justFriends) && $justFriends == 'true') {
+					$where_strs[] = "r.isFriend=1";
+				}
+
+			}
+
+
+
+			$whereString = implode(' AND ', $where_strs);
+
+			$sql = 'SELECT c.*, u.uid, u.fbid, u.first_name, u.last_name, u.bio, u.birthday, r.numUnread, r.lastMessageDate
+					FROM users u
+					LEFT JOIN checkins c ON c.checkinid = u.lastCheckinId 
+					LEFT JOIN relationships r ON r.selfId = ' . $_SESSION['uid'] . ' and r.otherId = u.uid 
+					WHERE r.hasBlocked = false AND ' . $whereString . 
+					' ORDER BY ' . $orderBy . ' LIMIT 40';
+			
+			//echo "\n\n $sql \n\n";
+
+			$results = $this -> db -> get_results($sql);
+			
+			return $results;
 		}
 	
 		/************************************************************************************************

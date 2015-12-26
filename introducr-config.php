@@ -22,7 +22,10 @@
 				"password" => "root",
 				"database" => "introducr"
 			);
-			$config['socketPath'] = "ws://127.0.0.1:9000";
+			$config['socket'] = array(
+				"path" => "127.0.0.1",
+				'port' => "9000"
+			);
 			$config["facebook"]["appId"] = '926145584145218';
 		break;
 	
@@ -35,6 +38,10 @@
 				"database" => "machigon_introducr"
 			);
 			$config["facebook"]["appId"] = '1088503254517685';
+			$config['socket'] = array(
+				"path" => "wells.machigonne.org",
+				'port' => "9000"
+			);
 		break;
 
 		

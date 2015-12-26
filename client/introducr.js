@@ -3,16 +3,18 @@
 var here = {
 	hasLocation : false
 }
-function updateLocation(position){				
+function updateLocation(position){
+
 	here.hasLocation = true;
 	here.lat = position.coords.latitude;
 	here.lon = position.coords.longitude;
-	here.img_url = 	
-		"http://maps.googleapis.com/maps/api/staticmap?center=" + 
-		here.lat + ',' + here.lon + 
-		"&zoom=14&size=300x200&sensor=false" +
-		"&markers=color:blue|" + here.lat + "," + here.lon;
+	if(appHandleUpdatedLocation) appHandleUpdatedLocation();
 }
+
+function locationRefused(error) { 
+	alert("Sorry.  Introducr requires you to tell us where you are.");
+}
+
 if (navigator.geolocation) {
 	navigator.geolocation.getCurrentPosition(updateLocation);
 	navigator.geolocation.watchPosition(updateLocation);
@@ -28,8 +30,10 @@ var app = angular.module('introducrApp', ['LocalStorageModule']);
 app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$window',  'localStorageService',
 	function($scope, $http, $sce, $rootScope, $window, localStorageService){
 		
+		
 
 		$scope.init = function(){
+
 
 			$scope.dictionary = dictionary;
 			$scope.fb_config = fb_config;
@@ -44,11 +48,9 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				show : false
 			}
 
+
 			// init socket controller
-			$scope.socketController.init(socket_path);
-			
-			//  load state from cookie
-			$scope.cookieMonster.load();
+			$scope.socketController.init(socket_params);
 			
 			// bring up selected person
 			$scope.currentPerson = {
@@ -60,6 +62,8 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			$scope.loadFB();
 			
 			
+			//  load state from cookie - launches app
+			$scope.cookieMonster.load();	
 		}
 		
 		
@@ -83,16 +87,39 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 		// COOKIE MONSTER - MAINTAIN STATE IN BETWEEN SESSIONS
 		$scope.cookieMonster = {
 			save : function(){
+				$scope.user.here = here;
 				localStorageService.set('user', $scope.user);
 				$scope.socketController.register();
+				if(!$scope.loaded) this.load();
 			},
 			load : function(){
 				var user = localStorageService.get('user');
-				if(user) {
-					$scope.user = user;
-					$scope.feedController.open();
+				if(user  && !$scope.loaded) {
+
+					console.log('trying to load app from user cookie:');
+					console.log(user);
+
+					$scope.user = user;					
 					$scope.loaded = true;
-					$scope.socketController.register();					
+					$scope.socketController.register();	
+
+					$scope.search = {
+						search_str : "",
+						proximity : "1",
+						gender: "",
+						age: "",
+						sort_order: "time",
+						justFriends: false,
+						here: $scope.user.here
+					}
+					
+					if(parseInt($scope.user.isNew)){
+						$scope.loadView('account');
+					}
+					else {
+						$scope.feedController.open();
+					}
+					//$scope.$digest();
 				}
 			},
 			clear : function(){
@@ -122,18 +149,50 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 		$scope.acctController = {
 			
 			step : 1,
-			
-			charsRemaining : 300,
-			
+
+			needs : {
+				first_name : false,
+				last_name : false,
+				email : false,
+				bio : false
+			},
+
+			sending: false,
+
 			loadLoginScreen : function(){
 				$scope.header.show = false;
+				$scope.footer.show = false;
 				$scope.loadView('login');
 				$scope.$digest();
 			},
+
+			startFlow : function(){
+				this.step = 1;
+				$scope.loadView('account');
+			},
 			
 			saveAndProgress : function(){
+				if(this.sending) return;
 
+				// validate
+				var validate = {
+					1 : ['first_name', 'last_name', 'email'],
+					2 : ['bio']
+				}
+				var fields = validate[this.step];
+				var goAhead = true;
+				$.each(fields, function(fIndex, field_name){
+					if($scope.user[field_name] == '') {
+						$scope.acctController.needs[field_name] = true;
+						goAhead = false;
+					}
+					else $scope.acctController.needs[field_name] = false;
+				});
+				if(!goAhead) return;
+
+				
 				// save updated user
+				this.sending = true;
 				var request = {
 					user: $scope.user,
 					verb: 'updateUser'
@@ -141,15 +200,17 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				$scope.apiClient.postData(request, function(user){
 					$scope.user = user;
 					$scope.cookieMonster.save();
+
+					// iterate to next screen
+					$scope.acctController.sending = false;
+					$scope.acctController.step++;
+					if($scope.acctController.step == 3) {
+						$scope.feedController.open();
+					}
+					$scope.$digest();
 				});
 				
-				// iterate to next screen
-				this.step++;
-				
-				if(this.step == 3) {
-					$scope.loadView('browse');
-					this.step = 0;
-				}			
+						
 			}
 		
 		}
@@ -168,6 +229,8 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			},
 			
 			submit : function(){
+				if(this.status == "sending") return;
+
 				this.status = "sending";
 
 				if($scope.here.hasLocation){
@@ -177,12 +240,15 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 				var request = {
 					verb 	 : "postCheckin",
-					newCheckin : this.newCheckin
+					newCheckin : this.newCheckin,
+					search_params : $scope.search
 				}
 			
 				$scope.apiClient.postData(request, function(response){
-					$scope.user = response.user;
-					this.status = "sent";
+					$scope.feedController.mode = "feed";
+					$scope.prev = "feed";
+					$scope.loadView("feed", "feed");
+					$scope.feedController.loadFeed(response.checkins);
 				});			
 			
 			}
@@ -195,47 +261,73 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			open : function(){
 
 				this.status = "loading";
-				$scope.loadView("feed");
+				this.mode = "feed";
+				$scope.prev = "feed";
+				$scope.loadView("feed", "feed");
 			
 				var request = {
 					verb 	 : "listCheckins",
+					search_params : $scope.search
 				}
 			
 				$scope.apiClient.postData(request, function(response){
-					$scope.feedController.feedList = [];
-					
-					$.each(response.checkins, function(index, checkin){
-						var t = checkin.time.split(/[- :]/);
-						checkin.dateObj = new Date(t[0], t[1]-1, t[2], t[3], t[4], t[5]);
-
-						$scope.feedController.feedList.push(checkin);
-					});
-
-					this.status = "loaded";
-					$scope.$digest();
+					$scope.feedController.loadFeed(response.checkins);
 				});			
 
 			},
+
+			loadRecents : function(){
+
+				this.status = "loading";
+				this.mode = "recents";
+				$scope.loadView("feed", "recents");
+				
+				$scope.prev = "recents";
 			
-			submit : function(){
-				this.status = "sending";
-
-				if($scope.here.hasLocation){
-					this.newCheckin.lat = $scope.here.lat;
-					this.newCheckin.lon = $scope.here.lon;
-				}
-
 				var request = {
-					verb 	 : "postCheckin",
-					newCheckin : this.newCheckin
+					verb 	 : "listCheckins",
+					search_params : {
+						recents : true
+					}
 				}
 			
 				$scope.apiClient.postData(request, function(response){
-					$scope.user = response.user;
-					this.status = "sent";
+					$scope.feedController.loadFeed(response.checkins);
 				});			
+			},
+
+			loadFeed : function(checkins){
+				
+				
+
+				this.feedList = [];
+				
+				for(cIndex in checkins){
+					var checkin = checkins[cIndex];
+
+					// search results or recents can include people who've never checked in
+					if(checkin.time){
+						var t = checkin.time.split(/[- :]/);
+						checkin.dateObj = new Date(t[0], t[1]-1, t[2], t[3], t[4], t[5]);
+					}
+
+					if(checkin.lastMessageDate && checkin.lastMessageDate != '0000-00-00 00:00:00'){
+						var t = checkin.lastMessageDate.split(/[- :]/);
+						checkin.dateRecentObj = new Date(t[0], t[1]-1, t[2], t[3], t[4], t[5]);
+					}
+
+					checkin.lastCheckinMap = $scope.getMapForPoint(checkin);
+					
+					this.feedList.push(checkin);
+				}
+
+				this.status = "loaded";
+
+				$scope.$digest();
 			
 			}
+
+			
 		}
 		
 		
@@ -245,10 +337,19 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			chats : {},
 
 			openFromCheckin : function(checkin){
-				$scope.screen = 'profile'; // if chat already going, go straight to chat
 				$scope.selected_person = checkin;
 				$scope.selected_person.lastCheckin = checkin;
 				$scope.loadView('person');
+
+				// if no chat, show profile
+				if(checkin.lastMessageDate == '0000-00-00 00:00:00'){
+					$scope.screen = 'profile';
+					$scope.prev = "profile";
+				}
+				else {
+					this.openChat(); 
+				}
+				
 			},
 		
 			openChat : function(){
@@ -336,6 +437,21 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 			youveGotMail : function(message){
 				alert("you've got mail from user #" + message.senderId);
+			},
+
+			goBack : function(){
+				if($scope.prev == "profile") $scope.loadView('person', 'profile');
+				else {
+					$scope.screen = '';
+					if($scope.prev == "feed") $scope.feedController.open();
+					if($scope.prev == "recents") $scope.feedController.loadRecents();
+				}
+
+			},
+
+			loadProfile : function(){
+				$scope.loadView('person', 'profile');
+				$scope.prev = "profile";
 			}
 
 		}
@@ -348,8 +464,8 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			
 			isOpen : false,
 		
-			init : function(socketPath) {
-				var host = socketPath; 
+			init : function(socket_params) {
+				var host = 'ws://' + socket_params.path + ':' + socket_params.port; 
 				try {
 					this.socket = new WebSocket(host);
 					this.socket.self = this;
@@ -360,6 +476,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					};
 							   
 					this.socket.onmessage = function(envelope) { 
+						
 						var message = angular.fromJson(envelope.data);
 
 						console.log("new envelope in the mailbox");
@@ -437,6 +554,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			$window.fbAsyncInit = function() {
 				FB.init({ 
 					appId: $scope.fb_config.appId, 
+					cookie: true,
 					xfbml: true,
 				    version: 'v2.5'
 				});
@@ -465,22 +583,24 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 							$scope.apiClient.postData(request, function(response){
 								$scope.user = response.user;
 								$scope.cookieMonster.save();
-							
-								
-								if(!$scope.loaded){							
-									if($scope.user.isNew){
-										$scope.loadView('account');
-									}
-									else {
-										$scope.loadView('feed');
-									}
-									$scope.$digest();
-								}	
+
+								// once we've loaded the user, update their list of friends on the server
+								FB.api(user.id + '/friends?limit=5000', function(response) {
+									$scope.user.friendsList = [];
+									$.each(response.data, function(index, friend){
+										$scope.user.friendsList.push(friend.id);
+									});
+									var req = {
+										"verb" : "recordFriends",
+										"friends" : $scope.user.friendsList
+									};
+									$scope.apiClient.postData(req, function(response){
+
+									});
+								});
 							});
 						
-							FB.api(user.id + '/friends', function(response) {
-								$scope.fbData.friends = response;
-							});
+							
 						});
 					}
 					else {
@@ -514,7 +634,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			$scope.cookieMonster.clear();
 		 }
 	
-		// reset user obj, called on auth change to neg
+		// reset user obj, called if user loads without being logged in or logs out from inside app
 		$scope.resetFb = function(){
 			$scope.fbData = {
 				status: 'unconnected'
@@ -523,7 +643,20 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 		}
 
 		///////////////////////////////////////////////////////////////////////////////////
-		
+		// MAP STUFF
+		$scope.getMapForPoint = function(point){
+			var map_url =
+				"http://maps.googleapis.com/maps/api/staticmap?center=" 
+				+ point.lat + ',' + point.lon + 
+				"&zoom=14&size=300x200&sensor=false" +
+				"&markers=color:blue|" + point.lat + "," + point.lon;
+			return map_url;
+		}
+
+		// update stored user information when geoposition updates (polls)
+		appHandleUpdatedLocation = function(){
+			if('user' in $scope) $scope.cookieMonster.save();
+		}
 		
 		
 		

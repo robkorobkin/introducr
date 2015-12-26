@@ -34,9 +34,10 @@ img				{ display: block; }
 
 /* FOOTER */
 .footer						{ display: flex; flex-direction: row; height: 45px; line-height: 32px; width: 100%; 
-								background: white; color: #777; border-top: solid 1px #ccc; font-size: 18px; }
+								background: white; color: #777; font-size: 18px; margin: 0;}
+.footer_nav					{ width: 100%; max-width: 500px; margin: 0px auto; }
 .footer .link:first-child 	{ border-left: none; }
-.footer .link 				{ text-align: center; cursor: pointer; border-left: dashed 1px #ccc; height: 45px; }
+.footer .link 				{ text-align: center; cursor: pointer; border-left: dashed 1px #ccc; height: 45px; width: 20%; float: left;}
 .footer .link:hover 		{ color: black; }
 .footer .link div 			{ font-size: 10px; color: #777; line-height: 4px; }
 .footer .link:hover  div	{ color: black; }
@@ -45,19 +46,16 @@ img				{ display: block; }
 
 /* MAIN CONTENT */
 .appFrame 				{ flex: 1 1 0;  }
-.mainContent 			{ }
-.mainContent.padTop		{ padding-top: 60px; }
-.mainContent.padBottom	{ padding-bottom: 60px; }
-.primaryFrame			{ padding: 0 16px; margin-top: 15px; }
+.mainContent 			{ max-width: 500px; margin: 0 auto;}
+.primaryFrame			{ padding: 0px 16px 0; background: white;}
+.primaryFrame h2		{ margin-top: 0; font-weight: normal; }
 
 /* EDIT ACCOUNT */
-.mainContent input		{ width: 100%; display: block; height: 40px; font-size: 14px; margin-top: 7px; padding-left: 8px; }
-.mainContent select		{ display: block; height: 40px; font-size: 14px; margin-top: 7px; padding-left: 8px; width: 100%; }
-.mainContent .btn-primary	{ display: block; height: 40px; line-height: 40px; text-align: center; font-size: 14px; margin-top: 7px; width: 100%; }
-.mainContent .bio 		{ display: block; width: 100%; height: 400px; }
+#user_bio 			{ display: block; width: 100%; height: 205px; font-size: 12px;}
 
 /* MAKE CHECKIN */
 .checkinImage		{ display: block; margin: 4px auto; max-width: 100%; }
+#newcheckin_message	{ font-size: 12px; height: 75px;}
 
 /* BROWSE CHECKINS */
 .checkinList		{ min-height: 100%; }
@@ -67,18 +65,29 @@ img				{ display: block; }
 .checkin .icon img	{ border-radius: 50%; height: 50px; width: 50px; }
 .checkin .text		{ float: left; }
 .checkin .name		{ line-height: 30px; font-size: 17px; }
-.checkin .info		{ line-height: 20px; font-size: 11px; font-family: 'Open Sans', sans-serif; }
+.checkin .info		{ line-height: 20px; font-size: 11px; }
+.checkin .message	{ line-height: 20px; font-size: 11px; font-style: italic; }
 
+/* SEACH */
+.form-group 	{ margin-top: 0;}
+.form-group label, .form-group label.control-label	{ margin-top: 0;}
+.mainContent select, .mainContent input { margin-top: 0; padding-top: 0;}
+label .toggle { padding-right: 20px;}
+label .toggle:nth-child(3) { display: none;}
+.toggledOn { color: black !important;}
 
 /* PERSON PAGE */
 .personView 						{ }
 .personView h3						{ text-align: center; padding-top: 10px;  font-family: 'infiniregular',Helvetica,Arial,sans-serif; margin-top: 0}
 .personView .featureProfilePic		{ max-width: 50%; margin: 0px auto; border-radius: 10px;  }
-.personView .checkinInfo			{ text-align: center; margin: 10px 0 0; font-family: 'Open Sans', sans-serif; }
-.personView .smallBtns .btn			{ margin: 20px auto; }
+.personView .checkinInfo			{ text-align: center; margin: 0; }
+.personView .checkinInfo b			{ padding-top: 5px; display: block}
+.personView .messageBtn				{ margin: 20px 50px; display: block;}
 
-.personView .profile				{ width: 70%; margin: 20px auto; text-align: center; }
-
+.personView .profile				{ width: 70%; margin: 0px auto; text-align: center; font-size: 13px;}
+.personView .bottomLinks 			{ text-align: center; font-size: 11px; padding-bottom: 10px; }
+.personView a 						{ display: block; padding: 5px; }
+.personView .checkin_caption		{ font-size: 12px; font-style: italic; }
 
 /* CHAT */
 .chatHeader 			{ display: flex; flex-direction: row;  height: 50px; line-height: 45px; width: 100%; 
@@ -96,7 +105,7 @@ img				{ display: block; }
 							padding: 5px; font-size: 11px; color: black; }
 .chatInput a			{ font-size: 11px; padding: 0; line-height: 60px; margin: 0; display: block; text-align: center; }
 
-.dialogueFrame 			{ padding: 10px 0;}
+.dialogueFrame 			{ padding: 10px 15px;}
 .dialogueFrame .speech	{ clear: both; border-radius: 5px; padding: 5px 10px; margin: 4px 0; font-size: 15px; line-height: 18px; }
 .dialogueFrame .me		{ float: right; background: green; color: white; }
 .dialogueFrame .them	{ float: left; background: #ccc; }

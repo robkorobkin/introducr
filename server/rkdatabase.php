@@ -50,7 +50,8 @@
 	
 		function get_results($sql){
 			$result = $this -> conn -> query($sql);
-			$response = array();
+			if(!$result) return array();
+
 			while($response[] = $result -> fetch_assoc());
 			unset($response[count($response) -1]);
 			return $response;

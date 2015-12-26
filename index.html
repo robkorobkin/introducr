@@ -46,13 +46,11 @@
 		<link rel="apple-touch-icon-precomposed" sizes="114x114" href="icon-114x114.png">
 		<link rel="apple-touch-icon-precomposed" sizes="76x76" href="icon-76x76.png">
 		<link rel="apple-touch-icon-precomposed" sizes="72x72" href="icon-72x72.png"-->
-
-
 		<link rel="stylesheet" type="text/css" href="client/third_party/cubiq/addtohomescreen.css">
 		<script src="client/third_party/cubiq/addtohomescreen.min.js"></script>
-		<script>
-				addToHomescreen();
-		</script>
+		<script>addToHomescreen({detectHomescreen: true});</script>
+
+
 
 		
 		<!-- APP -->
@@ -65,7 +63,7 @@
 		<!-- CHAT CHROME -->
 		<div class="chatHeader" ng-if="screen == 'chat'">
 			<div class="left col-xs-2 col-sm-2">
-				<a ng-click="feedController.reveal()" class="btn btn-default btn-fab btn-fab-micro">
+				<a ng-click="chatController.goBack()" class="btn btn-default btn-fab btn-fab-micro">
 					<i class="material-icons">keyboard_backspace</i>
 				</a>
 			</div>		
@@ -73,7 +71,8 @@
 				<div class="chatPersonName">{{selected_person.first_name}} {{selected_person.last_name}}</div>
 			</div>
 			<div class="right col-xs-2 col-sm-2" style="padding-right: 0">
-				<img class="personIcon" ng-src="//graph.facebook.com/{{selected_person.fbid}}/picture" />
+				<img class="personIcon" ng-src="//graph.facebook.com/{{selected_person.fbid}}/picture" 
+					ng-click="chatController.loadProfile()" />
 			</div>
 		</div>
 		
@@ -83,7 +82,7 @@
 		
 			
 			<!-- MAIN CONTENT -->
-			<div class="mainContent col-sm-4 col-sm-offset-4 col-xs-12">
+			<div class="mainContent">
 
 				<!-- LOADING INTERFACE -->
 				<div class="loadingFrame" ng-if="view=='loading'" >
@@ -109,14 +108,22 @@
 				</div>
 				
 				<!-- MAKE CHECK-IN INTERFACE -->
-				<div ng-if="view == 'checkIn'">
-					<div class=" panel panel-default primaryFrame" style="padding-top: 1px">
-						<div class="form-group" style="margin: 0"						 >
+				<div ng-if="view == 'checkIn'" class="panel panel-default primaryFrame checkinFrame" style="padding-top: 16px">
+					<div class="checkin_form">
+						<div class="form-group" style="margin: 0">
 							<label class="control-label" for="locationName">Where are you?</label>
 							<input class="form-control" id="locationName" type="text" ng-model="checkinController.newCheckin.location">
 						</div>
+						
 						<div ng-if="here.hasLocation">
-							<img ng-src="{{here.img_url}}" class="checkinImage"/>
+							<img ng-src="{{getMapForPoint(here)}}" class="checkinImage"/>
+						</div>
+						<div class="form-group" ng-class="{'has-error': checkinController.needs.message}" style="margin-top: 8px">
+							<label for="newcheckin_message" class="control-label">What's up?</label>
+							<textarea class="form-control" id="newcheckin_message" ng-model="checkinController.newCheckin.message" maxlength="140"></textarea>
+							<div style="height: 15px;">
+								<span class="help-block">{{(140 - checkinController.newCheckin.message.length)}} chars remaining</span>
+							</div>
 						</div>
 						<div style="margin: 5px; text-align: center;">
 							<a class="btn btn-raised btn-success" ng-click="checkinController.submit()">Introduce Yourself</a>
@@ -127,16 +134,30 @@
 				<!-- ACCOUNT MANAGEMENT INTERFACE -->
 				<div ng-if="view == 'account'" class=" panel panel-default primaryFrame" style="padding: 16px">
 					<div ng-if="acctController.step == 1">
-						<input type="text" ng-model="user.first_name" placeholder="FIRST NAME" />
-						<input type="text" ng-model="user.last_name" placeholder="LAST NAME" />
-						<input type="text" ng-model="user.email" placeholder="EMAIL" />
+						<div class="form-group" style="margin: 0" ng-class="{'has-error': acctController.needs.first_name}">
+							<label class="control-label" for="user_first_name" >First Name</label>
+							<input class="form-control" id="user_first_name" type="text" ng-model="user.first_name" ng-required>
+						</div>
+						<div class="form-group" style="margin: 0" ng-class="{'has-error': acctController.needs.last_name}">						 
+							<label class="control-label" for="user_last_name">Last Name</label>
+							<input class="form-control" id="user_last_name" type="text" ng-model="user.last_name">
+						</div>
+
+						<div class="form-group" style="margin: 0" ng-class="{'has-error': acctController.needs.email}">						 
+							<label class="control-label" for="user_email">Email</label>
+							<input class="form-control" id="user_email" type="text" ng-model="user.email">
+						</div>
+
 						<div class="row">
 							<div class="col-sm-8 col-xs-8">
-								<input type="text" ng-model="user.city" placeholder="CITY"  />
+								<div class="form-group" style="margin: 0">						 
+									<label class="control-label" for="user_city">City</label>
+									<input class="form-control" id="user_city" type="text" ng-model="user.city">
+								</div>
 							</div>
-							<div class="col-sm-4 col-xs-4" style="padding-left: 0px">
-								<select ng-model="user.state" >
-									<option value="">State</option>
+							<div class="col-sm-4 col-xs-4 form-group" style="padding-left: 0px">
+								<label class="control-label" for="user_state">state</label>
+								<select class="form-control" id="user_state" ng-model="user.state">
 									<option ng-repeat="(abbrev, state) in dictionary.us_state_abbrevs_names" 	
 											ng-value="state" ng-selected="state == user.state">{{abbrev}}</option>
 								</select>
@@ -145,46 +166,55 @@
 						
 						      
 						<div class="row">
-							<div class="col-sm-6 col-xs-6">
-								<select ng-model="user.gender" >
-									<option value=""></option>
-									<option>MALE</option>
-									<option>FEMALE</option>
-									<option>OTHER</option>									
+							<div class="col-sm-6 col-xs-6 form-group">
+								<label for="user_gender" class="control-label">Gender?</label>
+								<select id="user_gender" class="form-control" ng-model="user.gender" >
+									<option value="MALE">Male</option>
+									<option value="FEMALE">Female</option>
+									<option value="OTHER">Other</option>
 								</select>
 							</div>
 						</div>
 
 						<div class="row">
-							<div class="col-sm-4 col-xs-4" style="padding-right: 0">	
-								<select ng-model="user.birthday.month">
-									<option value="0">MONTH</option>
+							<div class="col-sm-4 col-xs-4 form-group" style="padding-right: 0">
+								<label for="user_birthday_month" class="control-label">Month</label>
+								<select id="user_birthday_month" class="form-control" ng-model="user.birthday.month" >
 									<option ng-repeat="(monthNum, monthName) in dictionary.months"
 											ng-value="monthNum" ng-selected="monthNum == user.birthday.month">{{monthName}}</option>
 								</select>
 							</div>
-							<div class="col-sm-4 col-xs-4">									
-								<select ng-model="user.birthday.day">
-									<option value="0">DAY</option>
+							<div class="col-sm-4 col-xs-4 form-group">									
+								<label for="user_birthday_day" class="control-label">Day</label>
+								<select id="user_birthday_day" class="form-control" ng-model="user.birthday.day" >
 									<option ng-repeat="dayNum in dictionary.days"
 											ng-value="dayNum" ng-selected="dayNum == user.birthday.day">{{dayNum}}</option>
 								</select>
 							</div>
-							<div class="col-sm-4 col-xs-4" style="padding-left: 0">																	
-								<select ng-model="user.birthday.year">
-									<option value="0">YEAR</option>
+							<div class="col-sm-4 col-xs-4 form-group" style="padding-left: 0">	
+								<label for="user_birthday_year" class="control-label">Year</label>
+								<select id="user_birthday_year" class="form-control" ng-model="user.birthday.year" >
 									<option ng-repeat="year in dictionary.years"
 											ng-value="year" ng-selected="year == user.birthday.year">{{year}}</option>
-								</select>
+								</select>																								
 							</div>					
 						</div>
-						<a class="btn-primary " ng-click="acctController.saveAndProgress()">Next</a>
+						<div style="margin: 5px; text-align: center;">
+							<a class="btn btn-raised btn-success" ng-click="acctController.saveAndProgress()">Next</a>
+						</div>
 					</div>
 					
-					<div ng-if="acctController.step == 2">
-						<label>Who are you? ({{acctController.charsRemaining}} chars)</label>
-						<textarea class="bio" ng-model="user.bio"></textarea>
-						<a class="btn-primary " ng-click="acctController.saveAndProgress()">Start Meeting People</a>
+					<div ng-if="acctController.step == 2"> 
+						<div class="form-group" ng-class="{'has-error': acctController.needs.bio}">
+							<label for="user_bio" class="control-label">Who are you?</label>
+							<textarea class="form-control" id="user_bio" ng-model="user.bio" maxlength="300"></textarea>
+							<div style="height: 15px;">
+								<span class="help-block">{{(300 - user.bio.length)}} chars remaining</span>
+							</div>
+						</div>
+						<div style="margin: 5px; text-align: center;">
+							<a class="btn btn-raised btn-success" ng-click="acctController.saveAndProgress()">Start Meeting People</a>
+						</div>
 					</div>
 				</div>
 				
@@ -200,12 +230,82 @@
 								<div class="name">
 									{{checkin.first_name}} {{checkin.last_name}}
 								</div>
-								<div class="info">
-									{{ checkin.dateObj | date:'MMM. d - h:ma'}} - {{checkin.location}}
+								<div ng-if="feedController.mode=='feed'">
+									<div ng-if="checkin.time">
+										<div class="info">
+											{{ checkin.dateObj | date:'MMM. d - h:mma'}} - {{checkin.location}}
+										</div>
+										<div class="message">{{checkin.message}}</div>
+									</div>
+								</div>
+								<div ng-if="feedController.mode=='recents'">
+									<div class="message">{{ checkin.dateRecentObj | date:'EEEE'}}</div>
 								</div>
 							</div>
 						</div>																	
 					</div>
+				</div>  
+
+				<!-- SEARCH INTERFACE -->
+				<div ng-if="view == 'search'" class="primaryFrame" style="padding-top: 16px">
+					<h2>Search</h2>
+
+					<div class="form-group" style="margin: 0">						 
+						<label class="control-label" for="search_str">Search by name?</label>
+						<input class="form-control" id="search_str" type="text" ng-model="search.search_str">
+					</div>
+					
+					<div class="form-group">
+						<label for="search_proximity" class="control-label">Proximity?</label>
+						<select id="search_proximity" class="form-control" ng-model="search.proximity" >
+							<option value="1">1 Mile</option>
+							<option value="5">5 Miles</option>
+							<option value="20">20 Miles</option>
+							<option value="">All</option>
+						</select>
+					</div>
+
+					<div class="form-group">
+						<label for="search_gender" class="control-label">Gender?</label>
+						<select id="search_gender" class="form-control" ng-model="search.gender" >
+							<option value="">All Genders</option>
+							<option value="male">Male</option>
+							<option value="female">Female</option>
+							<option value="other">Other</option>
+						</select>
+					</div>
+
+					<div class="form-group">
+						<label for="search_age" class="control-label">Age?</label>
+						<select id="search_age" class="form-control" ng-model="search.age" >
+							<option value="">All Ages</option>
+							<option value="_20">Under 20</option>
+							<option value="20_30">20 to 30</option>
+							<option value="30_40">30 to 40</option>
+							<option value="40_">Over 40</option>
+						</select>
+					</div>
+
+					<!-- CONTROL SORT ORDER
+						<div class="form-group">
+							<label for="search_sort_order" class="control-label">Sort Order?</label>
+							<select id="search_sort_order" class="form-control" ng-model="search.sort_order" >
+								<option value="time">Last Posted</option>
+								<option value="abc">Alphabetical</option>
+							</select>
+						</div>
+					-->
+					
+					<div class="form-group togglebutton" style="margin-top: 0;">
+						<label ng-class="{toggledOn : search.justFriends}">
+							<input checked="" type="checkbox" ng-model="search.justFriends"> Just My Friends
+						</label>
+					</div>
+					
+					<div style="margin: 5px; text-align: center;">
+						<a class="btn btn-raised btn-success" ng-click="feedController.open()">Search</a>
+					</div>
+
 				</div>
 				
 				<!-- PERSON INTERFACE -->
@@ -214,23 +314,24 @@
 						<h3>{{selected_person.first_name}} {{selected_person.last_name}}</h3>
 						<img class="featureProfilePic" 
 							ng-src="//graph.facebook.com/{{selected_person.fbid}}/picture?type=large" />
-						<div class="checkinInfo">
+						<div >
+							<a class="btn btn-raised btn-success messageBtn" ng-click="chatController.openChat()">Message</a>
+						</div>
+						<div class="profile">{{selected_person.bio}}</div>
+						<div class="checkinInfo" ng-if="selected_person.time">
+							<div>...</div>
 							<b>Last Check-In:</b>
-							<br />{{selected_person.lastCheckin.dateObj | date:'MMM. d - h:ma'}}
-							<br />{{selected_person.lastCheckin.location}}		
-						</div>
-						<div class="smallBtns row">
-							<div class="col-sm-4 col-sm-offset-2 col-xs-6" class="padding-right: 8px;">
-								<a class="btn btn-raised btn-success" 
-									ng-click="chatController.openChat()">Message</a>
-							</div>
-							<div class="col-sm-4 col-xs-6" style="padding-left: 8px;">
-								<a class="btn btn-raised btn-warning" 
-									ng-click="chatController.blockUser()">Block</a>
+							{{selected_person.lastCheckin.location}}	
+							<img ng-src="{{selected_person.lastCheckinMap}}" class="checkinImage"/>	
+							<div class="checkin_caption">
+								{{selected_person.lastCheckin.dateObj | date:'MMM. d - h:ma'}}
+								<div ng-if="selected_person.lastCheckin.message != ''">{{selected_person.lastCheckin.message}}</div>
 							</div>
 						</div>
-						<div class="profile">
-							<p>{{selected_person.bio}}</p>						
+						<div class="bottomLinks">
+							<div>...</div>
+							<a ng-click="chatController.blockUser()">Block</a>
+							<a ng-click="chatController.reportUser()">Report</a>
 						</div>
 					</div>
 					<div ng-if="screen == 'chat'" >
@@ -252,24 +353,29 @@
 		</div>
 
 		<!-- FOOTER: MENU -->
-		<div class="footer" ng-if="footer.show">
-			<div class="col-sm-4 col-xs-12" style="margin: 0px auto; float: none; padding: 0;">
-				<div class="col-sm-3 col-xs-3 link checkIn" ng-click="checkinController.open()"
+		<div class="footer panel panel-default" ng-if="footer.show">
+			<div class="footer_nav">
+				<div class="link checkIn" ng-click="checkinController.open()"
 					ng-class="{active : currentComponent == 'checkin'}">
 					<i class="glyphicon glyphicon-edit"></i>
 					<div>Check-In</div>
 				</div>
-				<div class="col-sm-3 col-xs-3 link feed" ng-click="feedController.open()"
-					ng-class="{active : currentComponent == 'feed'}">
-					<i class="glyphicon glyphicon-globe"></i>
-					<div>Feed</div>
-				</div>
-				<div class="col-sm-3 col-xs-3 link search" ng-click="loadView('search')"
+				<div class="link search" ng-click="loadView('search')"
 					ng-class="{active : currentComponent == 'search'}">
 					<i class="glyphicon glyphicon-search"></i>
 					<div>Search</div>
 				</div>
-				<div class="col-sm-3 col-xs-3 link account" ng-click="loadView('account')"
+				<div class="link feed" ng-click="feedController.open()"
+					ng-class="{active : currentComponent == 'feed'  && screen == 'feed'}">
+					<i class="glyphicon glyphicon-globe"></i>
+					<div>Feed</div>
+				</div>
+				<div class="link recents" ng-click="feedController.loadRecents()"
+					ng-class="{active : currentComponent == 'feed' && screen == 'recents'}">
+					<i class="glyphicon glyphicon-time"></i>
+					<div>Recents</div>
+				</div>
+				<div class="link account" ng-click="acctController.startFlow()"
 					ng-class="{active : currentComponent == 'account'}">
 					<i class="glyphicon glyphicon-user"></i>
 					<div>Account</div>
@@ -278,7 +384,7 @@
 		</div>	
 		
 		<!-- FOOTER: CHAT INPUT -->		
-		<div class="chatInput" ng-if="screen == 'chat'">
+		<div class="chatInput panel panel-default" ng-if="screen == 'chat'">
 			<div class="col-sm-4 col-sm-offset-4 col-xs-12">
 				<div class="col-sm-10 col-xs-10" style="padding-left: 0;">
 					<textarea ng-model="chatController.currentText.content"></textarea>

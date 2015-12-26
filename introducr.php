@@ -1,4 +1,6 @@
 <?php
+	
+	
 	require_once("introducr-config.php");
 	require_once("server/rkdatabase.php");
 	require_once("server/introducr_api.php");
@@ -19,10 +21,6 @@
 	// LOAD STATIC ASSETS
 	if(isset($_GET['lib'])) {
 	
-		header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
-		header("Cache-Control: post-check=0, pre-check=0", false);
-		header("Pragma: no-cache");
-	
 		switch($_GET['lib']) {
 			
 			case "js" : 
@@ -39,14 +37,14 @@
 	}
 
 
-
-	$api -> request = $_POST;
-	$verb = $api -> request['verb'];
+	$request = $_POST;
+	$api -> request = $request;
+	$verb = $request['verb'];
 	
 	$requiresLogin = ($verb != 'loginUser');
 	
 	
-	$isLoggedIn = (isset($_SESSION['uid']) && $_SESSION['uid'] == $api -> request['uid']);
+	$isLoggedIn = (isset($_SESSION['uid']) && isset($request['uid']) && $_SESSION['uid'] == $request['uid']);
 	
 	if( $requiresLogin && !$isLoggedIn){
 		$response['error'] = "logged out";

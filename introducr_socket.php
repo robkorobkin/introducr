@@ -53,6 +53,8 @@ class introducrSocketServer extends WebSocketServer {
 	
 	protected function connected ($user) {
 		// this is triggered when a new user joins
+		$response = array("message" => "hello");
+		$this -> send($user, json_encode($response));
 	}
 
 	protected function selectUser ($user) {
@@ -123,7 +125,9 @@ class introducrSocketServer extends WebSocketServer {
 
 }
 
-$socketServer 			= new introducrSocketServer("127.0.0.1","9000");
+extract($introducr_config['socket']);
+
+$socketServer 			= new introducrSocketServer($path,$port);
 $socketServer -> api 	= new introducrAPI($introducr_config);
 $socketServer -> db 	= new RK_mysql($introducr_config['database']);
 
