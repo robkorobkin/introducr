@@ -20,7 +20,7 @@ abstract class WebSocketServer {
     $this->maxBufferSize = $bufferLength;
     $this->master = socket_create(AF_INET, SOCK_STREAM, SOL_TCP)  or die("Failed: socket_create()");
     socket_set_option($this->master, SOL_SOCKET, SO_REUSEADDR, 1) or die("Failed: socket_option()");
-    socket_bind($this->master, $addr, $port)                      or die("Failed: socket_bind()");
+    socket_bind($this->master, "0.0.0.0", $port)                  or die("Failed: socket_bind()");
     socket_listen($this->master,20)                               or die("Failed: socket_listen()");
     $this->sockets['m'] = $this->master;
 	$this -> stdout('test from root class');

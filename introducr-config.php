@@ -41,7 +41,7 @@
 			$config["facebook"]["appId"] = '545140225659094';
 			$config["facebook_secret"] = '60913d21ea6f45937ca9530766ae193a';
 			$config['socket'] = array(
-				"path" => "wells.machigonne.org",
+				"path" => "introducr.net",
 				'port' => "9000"
 			);
 		break;
