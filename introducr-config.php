@@ -39,6 +39,7 @@
 				"database" => "introducr_live"
 			);
 			$config["facebook"]["appId"] = '545140225659094';
+			$config["facebook_secret"] = '60913d21ea6f45937ca9530766ae193a';
 			$config['socket'] = array(
 				"path" => "wells.machigonne.org",
 				'port' => "9000"
