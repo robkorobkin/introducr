@@ -132,7 +132,7 @@
 				
 				<!-- ACCOUNT MANAGEMENT INTERFACE -->
 				<div ng-if="view == 'account'" class=" panel panel-default primaryFrame" style="padding: 16px">
-					<div ng-if="acctController.step == 1">
+					<div ng-if="screen == 1">
 						<div class="form-group" style="margin: 0" ng-class="{'has-error': acctController.needs.first_name}">
 							<label class="control-label" for="user_first_name" >First Name</label>
 							<input class="form-control" id="user_first_name" type="text" ng-model="user.first_name" ng-required>
@@ -203,7 +203,7 @@
 						</div>
 					</div>
 					
-					<div ng-if="acctController.step == 2"> 
+					<div ng-if="screen == 2"> 
 						<div class="form-group" ng-class="{'has-error': acctController.needs.bio}">
 							<label for="user_bio" class="control-label">Who are you?</label>
 							<textarea class="form-control" id="user_bio" ng-model="user.bio" maxlength="300"></textarea>
@@ -215,33 +215,47 @@
 							<a class="btn btn-raised btn-success" ng-click="acctController.saveAndProgress()">Start Meeting People</a>
 						</div>
 					</div>
+
+					<div ng-if="screen == 'menu'"> 
+						<div style="margin: 5px; text-align: center;">
+							<a class="btn btn-raised btn-success" ng-click="cookieMonster.clear()">Log Out</a>
+						</div>
+					</div>					
 				</div>
 				
 				<!-- FEED INTERFACE -->
 				<div ng-if="view == 'feed'">
 					<div class="checkinList primaryFrame panel panel-default">
-						<div class="checkin clearfix" ng-repeat="checkin in feedController.feedList"
-							ng-click="chatController.openFromCheckin(checkin)">
-							<div class="icon">
-								<img ng-src="//graph.facebook.com/{{checkin.fbid}}/picture" />
-							</div>
-							<div class="text">
-								<div class="name">
-									{{checkin.first_name}} {{checkin.last_name}}
+
+						<div ng-if="screen = 'feed'">
+							<div class="checkin clearfix" ng-repeat="checkin in feedController.feedList"
+								ng-click="chatController.openFromCheckin(checkin)">
+								<div class="icon">
+									<img ng-src="//graph.facebook.com/{{checkin.fbid}}/picture" />
 								</div>
-								<div ng-if="feedController.mode=='feed'">
-									<div ng-if="checkin.time">
-										<div class="info">
-											{{ checkin.dateObj | date:'MMM. d - h:mma'}} - {{checkin.location}}
+								<div class="text">
+									<div class="name">
+										{{checkin.first_name}} {{checkin.last_name}}
+									</div>
+									<div ng-if="feedController.mode=='feed'">
+										<div ng-if="checkin.time">
+											<div class="info">
+												{{ checkin.dateObj | date:'MMM. d - h:mma'}} - {{checkin.location}}
+											</div>
+											<div class="message">{{checkin.message}}</div>
 										</div>
-										<div class="message">{{checkin.message}}</div>
+									</div>
+									<div ng-if="feedController.mode=='recents'">
+										<div class="message">{{ checkin.dateRecentObj | date:'EEEE'}}</div>
 									</div>
 								</div>
-								<div ng-if="feedController.mode=='recents'">
-									<div class="message">{{ checkin.dateRecentObj | date:'EEEE'}}</div>
-								</div>
 							</div>
-						</div>																	
+						</div>
+
+						<div ng-if="screen = 'empty'" style="margin-top: 15px; padding: 10px 10px 5px;">
+							<p>There are no checkins that meet your criteria.  Please revise the parameters of your search.</p>
+						</div>
+
 					</div>
 				</div>  
 
@@ -374,7 +388,7 @@
 					<i class="glyphicon glyphicon-time"></i>
 					<div>Recents</div>
 				</div>
-				<div class="link account" ng-click="acctController.startFlow()"
+				<div class="link account" ng-click="loadView('account', 'menu')"
 					ng-class="{active : currentComponent == 'account'}">
 					<i class="glyphicon glyphicon-user"></i>
 					<div>Account</div>

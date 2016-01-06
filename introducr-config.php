@@ -27,6 +27,7 @@
 				'port' => "9000"
 			);
 			$config["facebook"]["appId"] = '926145584145218';
+			$config["facebook_secret"] = '69228433742c2423c28cdc924216ecd2';
 		break;
 	
 		// development environment configuration

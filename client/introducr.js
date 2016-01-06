@@ -38,7 +38,11 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			$scope.dictionary = dictionary;
 			$scope.fb_config = fb_config;
 			$scope.here = here;
+
 			$scope.loaded = false;
+			$scope.sessionEstablished = false;
+			$scope.loggedIntoFacebook = false;
+			
 			$scope.appName = 'introducr';
 			$scope.view = 'loading';
 			$scope.header = {
@@ -47,7 +51,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			$scope.footer = {
 				show : false
 			}
-
+			$scope.user = {}; // placeholder - should load out of cookie
 
 			// init socket controller
 			$scope.socketController.init(socket_params);
@@ -57,13 +61,12 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				pics : {}
 			}
 			
-			// load user authenticator
-			$scope.fbData = {};
+			//  load state from cookie - launches app
+			$scope.cookieMonster.load();
+
+			// now that we know we have a good access token, load facebook sdk
 			$scope.loadFB();
 			
-			
-			//  load state from cookie - launches app
-			$scope.cookieMonster.load();	
 		}
 		
 		
@@ -89,43 +92,72 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			save : function(){
 				$scope.user.here = here;
 				localStorageService.set('user', $scope.user);
-				$scope.socketController.register();
+				localStorageService.set('feedList', $scope.feedController.feedList);
 				if(!$scope.loaded) this.load();
 			},
 			load : function(){
 				var user = localStorageService.get('user');
-				if(user  && !$scope.loaded) {
 
-					console.log('trying to load app from user cookie:');
-					console.log(user);
+				$scope.sessionInCookie = (user && 'fbAccessToken' in user);
 
-					$scope.user = user;					
+				if($scope.sessionInCookie  && !$scope.loaded) {
 					$scope.loaded = true;
+					$scope.user = user;					
 					$scope.socketController.register();	
+					$scope.feedController.init();
+					$scope.feedController.loadFeed(localStorageService.get('feedList'));
 
-					$scope.search = {
-						search_str : "",
-						proximity : "1",
-						gender: "",
-						age: "",
-						sort_order: "time",
-						justFriends: false,
-						here: $scope.user.here
-					}
-					
+
+					// load view - if new, load account interface, otherwise load feed
+					// ToDo: If they'd been in a chat, load to that chat					
 					if(parseInt($scope.user.isNew)){
-						$scope.loadView('account');
+						$scope.loadView('account', 1);
 					}
 					else {
-						$scope.feedController.open();
+						var feedList = localStorageService.get('feedList');
+						$scope.feedController.loadFeed(feedList);
 					}
-					//$scope.$digest();
+
+					//  now that we have an access token, renew server session (in the background)
+					var request = {
+						access_token: $scope.user.fbAccessToken,
+						search_params: $scope.search,
+						verb: "loginUser"
+					}
+					$scope.apiClient.postData(request, function(response){
+
+						// if their token doesn't validate on our server, log them out
+						if("error" in response){ 
+							$scope.cookieMonster.clear();
+						}
+
+						// else update session
+						else {
+							$scope.sessionEstablished = true;
+							$scope.user = response.user;
+							$scope.cookieMonster.save();
+							if("feedList" in response) $scope.feedController.loadFeed(response.feedList);
+							
+						}
+
+						
+					});
+
+					
+					
+				}
+				else {
+					$scope.loadView("login");
 				}
 			},
-			clear : function(){
-				localStorageService.set('user', false);
-				$scope.user = false;
+			clear : function(alreadyOut){
+				localStorageService.set('user', {});
+				$scope.user = {};
+				$scope.loaded = false;
+				$scope.sessionInCookie = false;
+
 				$scope.acctController.loadLoginScreen();
+				if($scope.loggedIntoFacebook) FB.logout();
 			}
 		}
 		
@@ -148,8 +180,6 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 		// ACCOUNT CONTROLLER
 		$scope.acctController = {
 			
-			step : 1,
-
 			needs : {
 				first_name : false,
 				last_name : false,
@@ -162,24 +192,22 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			loadLoginScreen : function(){
 				$scope.header.show = false;
 				$scope.footer.show = false;
+				console.log("trying to load login screen");
 				$scope.loadView('login');
-				$scope.$digest();
-			},
-
-			startFlow : function(){
-				this.step = 1;
-				$scope.loadView('account');
+				
 			},
 			
 			saveAndProgress : function(){
 				if(this.sending) return;
+
+				$scope.screen = parseInt($scope.screen);
 
 				// validate
 				var validate = {
 					1 : ['first_name', 'last_name', 'email'],
 					2 : ['bio']
 				}
-				var fields = validate[this.step];
+				var fields = validate[$scope.screen];
 				var goAhead = true;
 				$.each(fields, function(fIndex, field_name){
 					if($scope.user[field_name] == '') {
@@ -203,8 +231,8 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 					// iterate to next screen
 					$scope.acctController.sending = false;
-					$scope.acctController.step++;
-					if($scope.acctController.step == 3) {
+					$scope.screen++;
+					if($scope.screen == 3) {
 						$scope.feedController.open();
 					}
 					$scope.$digest();
@@ -257,6 +285,29 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 		
 		// FEED MANAGER
 		$scope.feedController = {
+
+			active : false,
+
+			init : function(feedList){
+				if(!("search" in $scope)){
+					$scope.search = {
+						search_str : "",
+						proximity : "1",
+						gender: "",
+						age: "",
+						sort_order: "time",
+						justFriends: false,
+						here: $scope.user.here
+					}
+				}
+				this.feedList = [];
+				this.active = true;
+			},
+
+			search : function(){
+				this.feedList = [];
+				this.open();
+			},
 			
 			open : function(){
 
@@ -265,6 +316,13 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				$scope.prev = "feed";
 				$scope.loadView("feed", "feed");
 			
+				if($scope.sessionEstablished){
+					this.updateFeed();				
+				}
+
+			},
+
+			updateFeed : function(){
 				var request = {
 					verb 	 : "listCheckins",
 					search_params : $scope.search
@@ -272,15 +330,13 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			
 				$scope.apiClient.postData(request, function(response){
 					$scope.feedController.loadFeed(response.checkins);
-				});			
-
+				});
 			},
 
 			loadRecents : function(){
 
-				this.status = "loading";
 				this.mode = "recents";
-				$scope.loadView("feed", "recents");
+				$scope.loadView("feed", "loading");
 				
 				$scope.prev = "recents";
 			
@@ -293,14 +349,13 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			
 				$scope.apiClient.postData(request, function(response){
 					$scope.feedController.loadFeed(response.checkins);
+					$scope.$digest();
 				});			
 			},
 
 			loadFeed : function(checkins){
-				
-				
 
-				this.feedList = [];
+				var checkins = (checkins) ? checkins : [];
 				
 				for(cIndex in checkins){
 					var checkin = checkins[cIndex];
@@ -321,10 +376,17 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					this.feedList.push(checkin);
 				}
 
-				this.status = "loaded";
+				if(this.feedList.length == 0) {
+					$scope.loadView("feed", "empty");
+				}
+				else {
+					$scope.loadView("feed", "feed");	
+				}
 
-				$scope.$digest();
-			
+				$scope.cookieMonster.save();
+				
+				
+				
 			}
 
 			
@@ -482,15 +544,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 						console.log("new envelope in the mailbox");
 						console.log(message);
 
-						if(message.status == "success"){
-							switch(message.subject){
-								case "message sent" : case "new message" :
-									$scope.chatController.confirmTransmission(message.body.message);
-								break;
-
-
-							}
-						}
+							
 					
 					};
 							   
@@ -558,54 +612,23 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					xfbml: true,
 				    version: 'v2.5'
 				});
-				FB.getLoginStatus(function(response) {
-					if(response.status == 'connected'){
-					 	$scope.fbData.status = 'loggedIn';
-					 }
-					else {
-						$scope.resetFb();
-					}
-				});
-			
+
+				
+				// on load / post-login, if you're logged in, update friends list
 				FB.Event.subscribe('auth.authResponseChange', function(res) {
-				
+
 					if (res.status === 'connected') {
-				
-						$scope.fbData.access_token = res.authResponse.accessToken;
-						$scope.fbData.status = 'loggedIn';
-						FB.api('/me', function(user) {
-		
-							var request = {
-								access_token: $scope.fbData.access_token,
-								verb: "loginUser"
-							}
-							
-							$scope.apiClient.postData(request, function(response){
-								$scope.user = response.user;
-								$scope.cookieMonster.save();
+						$scope.loggedIntoFacebook = true;
 
-								// once we've loaded the user, update their list of friends on the server
-								FB.api(user.id + '/friends?limit=5000', function(response) {
-									$scope.user.friendsList = [];
-									$.each(response.data, function(index, friend){
-										$scope.user.friendsList.push(friend.id);
-									});
-									var req = {
-										"verb" : "recordFriends",
-										"friends" : $scope.user.friendsList
-									};
-									$scope.apiClient.postData(req, function(response){
+						// if they're session is fresh
+						if(!$scope.sessionInCookie) {
+							$scope.loadView("loading");
+							$scope.user.fbAccessToken = res.authResponse.accessToken;
+						}
 
-									});
-								});
-							});
-						
-							
-						});
+						$scope.cookieMonster.save();						
 					}
-					else {
-						$scope.resetFb();
-					}
+
 
 				});
 			};
@@ -622,26 +645,28 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 	
 		}
 
+
+		
+
+
+
 		$scope.login = function() {	
 			
 			// triggers authResponseChange
-			FB.login(function(){
+			FB.login(function(res){
+
+				$scope.user = {
+					fbAccessToken : res.authResponse.accessToken
+				}
+				
+				$scope.cookieMonster.save();
+
+				
 			}, {scope: 'email,user_friends,user_about_me,user_location, user_birthday'});	
 		}
 	
-		$scope.logout = function(){
-			FB.logout();	// triggers authResponseChange
-			$scope.cookieMonster.clear();
-		 }
+		
 	
-		// reset user obj, called if user loads without being logged in or logs out from inside app
-		$scope.resetFb = function(){
-			$scope.fbData = {
-				status: 'unconnected'
-			}
-			$scope.cookieMonster.clear();
-		}
-
 		///////////////////////////////////////////////////////////////////////////////////
 		// MAP STUFF
 		$scope.getMapForPoint = function(point){
@@ -655,7 +680,9 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 		// update stored user information when geoposition updates (polls)
 		appHandleUpdatedLocation = function(){
-			if('user' in $scope) $scope.cookieMonster.save();
+
+			// if we're logged in - update user w. new location
+			//if(('user' in $scope) && ("fbAccessToken" in $scope.user)) $scope.cookieMonster.save();
 		}
 		
 		

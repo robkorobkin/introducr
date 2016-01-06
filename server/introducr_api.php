@@ -20,7 +20,10 @@
 			echo file_get_contents('client/introducr.css');
 		}
 		
-		
+		function handleError($message){
+			$response['error'] = $message;
+			exit(json_encode($response));
+		}
 
 
 
@@ -35,23 +38,28 @@
 	
 		function loginUser(){
 			extract($this -> request);
+			if(!isset($access_token)) $this -> handleError("missing access token");
 			
 			// if it's a facebook user, get uid
 			$uid = $this -> getUserFromFacebook($access_token);
 			
 			// PUT OTHER LOGIN MODES HERE
+
+			// store uid to session
+			$_SESSION['uid'] = $uid;
 			
 			// else - update date accessed
 			$update['dateAccessed'] = date("Y-m-d H:i:s");
+			$update['fbAccessToken'] = $access_token; // get updated access_token from Facebook
+			
 			$where['uid'] = $uid;
 			$this -> db -> update($update, "users", $where);
 			
-			// store uid to session
-			$_SESSION['uid'] = $uid;
-
+			
 			// return user record from database
 			return array(
-				"user" => $this -> _getUserByUid($uid)
+				"user" => $this -> _getUserByUid($uid),
+				"feedList" => $this -> listCheckins()
 			);
 			
 		}
@@ -129,31 +137,7 @@
 
 		}
 
-		function recordFriends(){
-			extract($this -> request);
-			$userId = $_SESSION['uid'];
-			foreach($friends as $friendFbId){
-				$friend = $this -> _getUserByFbId($friendFbId);
-				$friendId = (int) $friend['uid']; 
-				$update = array("isFriend" => 1);
-				
-				$where = array(
-					"selfId" => $userId,
-					"otherId" => $friendId
-				);
-				$this -> db -> updateOrCreate($update, "relationships", $where);
-
-				$where = array(
-					"selfId" => $friendId,
-					"otherId" => $userId
-				);
-				$this ->  db -> updateOrCreate($update, "relationships", $where);
-			}
-
-			return array(
-				"message" => "Updated relationships for " . count($friends) . " people."
-			);
-		}
+		
 
 
 		/************************************************************************************************
@@ -313,26 +297,72 @@
 			// look user up server-side
 			$url = 	'https://graph.facebook.com/me?access_token=' . $access_token . 
 					"&fields=first_name,email,last_name,middle_name,location,birthday,gender";
-			$userFromFacebook = json_decode(file_get_contents($url), true);
+			$response = file_get_contents($url);
+
 			
 			// handle bad token
-			if(!isset($userFromFacebook['id'])){
-				 return array(
-				 	"status" => "Failure",
-				 	"message" => "Access Token Not Valid",
-				 );
+			if(!$response || strpos($response, 'error') !== false) {
+				$this -> handleError("Bad access token.");
 			}
+			
+			$userFromFacebook = json_decode($response, true);
+
 			 
 
 			// is user in database?
 			$fbid = $userFromFacebook['id'];
-			$userFromDB = $this -> _getUserByFbId($fbid);
 			
-			// if so, return the uid
+			
+			// Are they already in the database?
+			$userFromDB = $this -> _getUserByFbId($fbid);
+
+
+			// update friends list
+			// ToDo: Do this on client to reduce server load, moved onto server to avoid client-side loading issues
+
+			$url = 'https://graph.facebook.com/me/friends?limit=5000&access_token=' . $access_token;
+			$response = file_get_contents($url);
+			if(!$response || strpos($response, 'error') !== false) {
+				$this -> handleError("Couldn't get friends list.", true);
+			}
+			$friendsResponse = json_decode($response, true);
+			$friendsList = array();
+			foreach($friendsResponse['data'] as $friend){
+				$friendsList[] = $friend['id'];
+			}
+			$this -> recordFriends($friendsList);
+
+
+
+
+
+			// if user in database, return the uid
 			if($userFromDB) return $userFromDB['uid'];
+
+			// else, get an extended access token
+			$url = 	'https://graph.facebook.com' . 
+					'/oauth/access_token?grant_type=fb_exchange_token' .
+					'&client_id=' . $this -> config["facebook"]["appId"] .
+					'&client_secret=' . $this -> config["facebook_secret"] . 
+					'&fb_exchange_token=' . $access_token;
+			
+			$response = file_get_contents($url);
+
+			if(!$response || strpos($response, 'error') !== false) {
+				$this -> handleError("Unable to get extended access token.");
+			}
+
+
+			$tmp = explode('&', $response);
+			$tmp = $tmp[0];
+			$tmp = explode('=', $tmp);
+			$longevity_token = $tmp[1];
+
 			
 			// if not - add user to database
 			$newUser = $userFromFacebook;
+
+			$newUser['fbAccessToken'] = $longevity_token;
 			
 			// - CREATE NEW USER OBJECT FROM FACEBOOK RETRIEVAL
 			if(isset($newUser['birthday'])) {
@@ -357,6 +387,31 @@
 			$uid = $this -> db -> insert($newUser, "users");
 			return $uid;		
 		
+		}
+
+		function recordFriends($friendsList){
+			$userId = $_SESSION['uid'];
+			foreach($friendList as $friendFbId){
+				$friend = $this -> _getUserByFbId($friendFbId);
+				$friendId = (int) $friend['uid']; 
+				$update = array("isFriend" => 1);
+				
+				$where = array(
+					"selfId" => $userId,
+					"otherId" => $friendId
+				);
+				$this -> db -> updateOrCreate($update, "relationships", $where);
+
+				$where = array(
+					"selfId" => $friendId,
+					"otherId" => $userId
+				);
+				$this ->  db -> updateOrCreate($update, "relationships", $where);
+			}
+
+			return array(
+				"message" => "Updated relationships for " . count($friends) . " people."
+			);
 		}
 	
 	
