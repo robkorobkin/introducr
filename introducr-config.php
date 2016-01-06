@@ -9,7 +9,7 @@
 
 
 	$config = array();
-	if(strpos(getCwd(), "machigon") !== false) $environment = "dev";
+	if(strpos(getCwd(), "var") !== false) $environment = "live";
 	else $environment = "local";
 	
 	switch($environment) {
@@ -31,12 +31,12 @@
 		break;
 	
 		// development environment configuration
-		case "dev" : 
+		case "live" : 
 			$config["database"] = array(
 				"servername" => "localhost",
-				"username" => "machigon_introdu", 
-				"password" => "Introducr!",
-				"database" => "machigon_introducr"
+				"username" => "root", 
+				"password" => "7DP7BEDrsu",
+				"database" => "introducr_live"
 			);
 			$config["facebook"]["appId"] = '1088503254517685';
 			$config['socket'] = array(
