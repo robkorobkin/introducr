@@ -56,7 +56,7 @@
 
 			// this gets json-enoced and passed to the client
 			$config['client'] = array(
-				'base_url' => 'http://introducr.net',
+				'base_url' => 'http://introducr.net/',
 				'socket' => array(
 					"path" => "introducr.net",
 					'port' => "9000"
