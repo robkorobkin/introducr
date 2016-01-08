@@ -97,9 +97,7 @@
 			$update['lastCheckinId'] = $checkinId;
 			$where['uid'] = $this -> uid;
 			$this -> db -> update($update, "users", $where);
-			print_r($update);
-			print_r($where);
-
+			
 			return $this -> listCheckins();
 		}
 
@@ -272,18 +270,26 @@
 
 			$whereString = implode(' AND ', $where_strs);
 
-			$sql = 'SELECT c.*, u.uid, u.fbid, u.first_name, u.last_name, u.bio, u.birthday, r.numUnread, r.lastMessageDate
+			$sql = 'SELECT c.*, u.uid, u.fbid, u.first_name, u.last_name, u.bio, u.birthday, r.numUnread, r.lastMessageDate, r.hasBlocked
 					FROM users u
 					LEFT JOIN checkins c ON c.checkinid = u.lastCheckinId 
 					LEFT JOIN relationships r ON r.selfId = ' . $_SESSION['uid'] . ' and r.otherId = u.uid 
-					WHERE r.hasBlocked = false AND ' . $whereString . 
+					WHERE ' . $whereString . 
 					' ORDER BY ' . $orderBy . ' LIMIT 40';
 			
-			//echo "\n\n $sql \n\n";
+			// echo "\n\n $sql \n\n";
 
 			$results = $this -> db -> get_results($sql);
 			
-			return $results;
+
+			// filter out anybody who's been blocked - if matches, less than 40 rows will be returned, but who cares.
+			$response = [];
+			foreach($results as $row){
+				if($row['hasBlocked'] != 1) $response[] = $row;
+			}
+
+
+			return $response;
 		}
 	
 		/************************************************************************************************
@@ -390,9 +396,12 @@
 		}
 
 		function recordFriends($friendsList){
+
 			$userId = $_SESSION['uid'];
-			foreach($friendList as $friendFbId){
+			foreach($friendsList as $friendFbId){
+
 				$friend = $this -> _getUserByFbId($friendFbId);
+
 				$friendId = (int) $friend['uid']; 
 				$update = array("isFriend" => 1);
 				
@@ -406,6 +415,7 @@
 					"selfId" => $friendId,
 					"otherId" => $userId
 				);
+
 				$this ->  db -> updateOrCreate($update, "relationships", $where);
 			}
 

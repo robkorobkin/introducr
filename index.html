@@ -115,7 +115,7 @@
 						</div>
 						
 						<div ng-if="here.hasLocation">
-							<img ng-src="{{getMapForPoint(here)}}" class="checkinImage"/>
+							<img ng-src="{{hereMapImg}}" class="checkinImage"/>
 						</div>
 						<div class="form-group" ng-class="{'has-error': checkinController.needs.message}" style="margin-top: 8px">
 							<label for="newcheckin_message" class="control-label">What's up?</label>
@@ -227,7 +227,7 @@
 				<div ng-if="view == 'feed'">
 					<div class="checkinList primaryFrame panel panel-default">
 
-						<div ng-if="screen = 'feed'">
+						<div ng-if="screen == 'feed'">
 							<div class="checkin clearfix" ng-repeat="checkin in feedController.feedList"
 								ng-click="chatController.openFromCheckin(checkin)">
 								<div class="icon">
@@ -252,7 +252,7 @@
 							</div>
 						</div>
 
-						<div ng-if="screen = 'empty'" style="margin-top: 15px; padding: 10px 10px 5px;">
+						<div ng-if="screen == 'empty'" style="margin-top: 15px; padding: 10px 10px 5px;">
 							<p>There are no checkins that meet your criteria.  Please revise the parameters of your search.</p>
 						</div>
 
@@ -378,12 +378,12 @@
 					<i class="glyphicon glyphicon-search"></i>
 					<div>Search</div>
 				</div>
-				<div class="link feed" ng-click="feedController.open()"
+				<div class="link feed" ng-click="feedController.updateFeed('feed')"
 					ng-class="{active : currentComponent == 'feed'  && screen == 'feed'}">
 					<i class="glyphicon glyphicon-globe"></i>
 					<div>Feed</div>
 				</div>
-				<div class="link recents" ng-click="feedController.loadRecents()"
+				<div class="link recents" ng-click="feedController.updateFeed('recents')"
 					ng-class="{active : currentComponent == 'feed' && screen == 'recents'}">
 					<i class="glyphicon glyphicon-time"></i>
 					<div>Recents</div>
