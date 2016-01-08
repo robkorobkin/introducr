@@ -319,7 +319,11 @@
 
 			if(!$response || strpos($response, 'access_token') === false) {
 
-				$this -> handleError("Failed to convert code into access token.");
+				$error = 	"Failed to convert code into access token: \n\n" .
+							$url . "\n\n" .
+							$response;
+
+				$this -> handleError($error);
 
 			}
 
@@ -339,7 +343,11 @@
 			$response = file_get_contents($url);
 
 			if(!$response || strpos($response, 'error') !== false) {
-				$this -> handleError("Unable to get extended access token.");
+				$error = 	"Unable to get extended access token. \n\n" .
+							$url . "\n\n" .
+							$response;
+
+				$this -> handleError($error);
 			}
 
 
