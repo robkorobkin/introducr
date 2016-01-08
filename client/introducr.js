@@ -753,8 +753,13 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 			$scope.loadView("loading");
 			
-			// triggers authResponseChange
+
+			alert("about to login");
+			
 			FB.login(function(res){
+
+				alert("call back");
+
 				$scope.user = {
 					fbAccessToken : res.authResponse.accessToken
 				}				
