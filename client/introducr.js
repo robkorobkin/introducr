@@ -2,7 +2,7 @@
 // SAFE LOGGER
 function logger(message){
 	if('console' in window && 'log' in console){
-		logger(message);
+		console.log(message);
 	}
 }
 
