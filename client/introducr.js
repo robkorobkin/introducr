@@ -1,8 +1,14 @@
 
 // SAFE LOGGER
 function logger(message){
+
+	$('#output').append('<br />');
+	$('#output').append(angular.toJson(message, true));
+
+
+
 	if('console' in window && 'log' in console){
-		console.log(message);
+		
 	}
 }
 
