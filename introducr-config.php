@@ -16,18 +16,31 @@
 	
 		// localhost configuration
 		case "local" : 
+
+
+			// this stuff stays on the server and needs to be kept secure
 			$config["database"] = array(
 				"servername" => 'localhost', 
 				"username" => "root", 
 				"password" => "root",
 				"database" => "introducr"
 			);
-			$config['socket'] = array(
-				"path" => "127.0.0.1",
-				'port' => "9000"
-			);
-			$config["facebook"]["appId"] = '926145584145218';
 			$config["facebook_secret"] = '69228433742c2423c28cdc924216ecd2';
+
+
+			// this gets json-enoced and passed to the client
+			$config['client'] = array(
+				'base_url' => 'http://www.localhost.com/biz/introducr/app',
+				'socket' => array(
+					"path" => "127.0.0.1",
+					'port' => "9000"
+				),	
+				'facebook' => array(
+					'appId' => '926145584145218'
+				)
+			);
+			
+			
 		break;
 	
 		// development environment configuration
@@ -38,17 +51,38 @@
 				"password" => "7DP7BEDrsu",
 				"database" => "introducr_live"
 			);
-			$config["facebook"]["appId"] = '545140225659094';
 			$config["facebook_secret"] = '60913d21ea6f45937ca9530766ae193a';
-			$config['socket'] = array(
-				"path" => "introducr.net",
-				'port' => "9000"
+
+
+			// this gets json-enoced and passed to the client
+			$config['client'] = array(
+				'base_url' => 'http://www.introducr.net',
+				'socket' => array(
+					"path" => "introducr.net",
+					'port' => "9000"
+				),	
+				'facebook' => array(
+					'appId' => '545140225659094'
+				)
 			);
+
 		break;
 
 		
 	}
 		
+
+	// authentication url
+	$perms = 'email,user_friends,user_about_me,user_location, user_birthday';
+	$config['client']['facebook']['perms'] = $perms;
+
+	$config['client']['facebook']['auth_url'] = 
+		'https://www.facebook.com/dialog/oauth?client_id=' . $config['client']['facebook']['appId']
+		. '&redirect_uri=' . urlencode($config['client']['base_url'])
+		. '&scope=' . $perms;
+	
+
+
 	$config['dictionary']['us_state_abbrevs_names'] = array(
 		'AL'=>'ALABAMA',
 		'AK'=>'ALASKA',

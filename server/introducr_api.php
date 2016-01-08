@@ -10,8 +10,7 @@
 		function printJS(){
 			header('Content-type: text/javascript');
 			echo 'var dictionary=' . json_encode($this -> config['dictionary']) . ';';
-			echo 'var fb_config=' . json_encode($this -> config['facebook']) . ';';
-			echo 'var socket_params=' . json_encode($this -> config['socket']) . ';';
+			echo 'var introducr_settings = ' . json_encode($this -> config['client']) . ';';
 			echo file_get_contents('client/introducr.js');
 		}
 		
@@ -38,6 +37,12 @@
 	
 		function loginUser(){
 			extract($this -> request);
+
+			if(isset($fb_code)){
+				$access_token = $this -> getAccessTokenFromCode($fb_code);
+			}
+
+
 			if(!isset($access_token)) $this -> handleError("missing access token");
 			
 			// if it's a facebook user, get uid
@@ -269,15 +274,16 @@
 
 
 			$whereString = implode(' AND ', $where_strs);
+			if($whereString != '') $whereString = 'WHERE ' . $whereString;
 
 			$sql = 'SELECT c.*, u.uid, u.fbid, u.first_name, u.last_name, u.bio, u.birthday, r.numUnread, r.lastMessageDate, r.hasBlocked
 					FROM users u
 					LEFT JOIN checkins c ON c.checkinid = u.lastCheckinId 
-					LEFT JOIN relationships r ON r.selfId = ' . $_SESSION['uid'] . ' and r.otherId = u.uid 
-					WHERE ' . $whereString . 
+					LEFT JOIN relationships r ON r.selfId = ' . $_SESSION['uid'] . ' and r.otherId = u.uid ' . 
+					$whereString .
 					' ORDER BY ' . $orderBy . ' LIMIT 40';
 			
-			// echo "\n\n $sql \n\n";
+			//echo "\n\n $sql \n\n";
 
 			$results = $this -> db -> get_results($sql);
 			
@@ -298,18 +304,66 @@
 		*
 		************************************************************************************************/
 	
+
+		function getAccessTokenFromCode($fb_code){
+			extract($this -> config);
+
+		
+			$url = 	'https://graph.facebook.com/v2.5/oauth/access_token?' . 
+					'client_id=' . $client['facebook']['appId'] .
+					'&redirect_uri=' . urlencode($client['base_url']) . 
+					'&client_secret=' . $facebook_secret . 
+					'&code=' . $fb_code;
+
+			$response = file_get_contents($url);
+
+			if(!$response || strpos($response, 'access_token') === false) {
+
+				$this -> handleError("Failed to convert code into access token.");
+
+			}
+
+
+			$access_token_data = json_decode($response);
+
+			$access_token = $access_token_data -> access_token;
+
+
+			// else, get an extended access token
+			$url = 	'https://graph.facebook.com' . 
+					'/oauth/access_token?grant_type=fb_exchange_token' .
+					'&client_id=' . $this -> config['client']["facebook"]["appId"] .
+					'&client_secret=' . $this -> config["facebook_secret"] . 
+					'&fb_exchange_token=' . $access_token;
+
+			$response = file_get_contents($url);
+
+			if(!$response || strpos($response, 'error') !== false) {
+				$this -> handleError("Unable to get extended access token.");
+			}
+
+
+			$tmp = explode('&', $response);
+			$tmp = $tmp[0];
+			$tmp = explode('=', $tmp);
+			$longevity_token = $tmp[1];
+
+			return $longevity_token;
+		}
+
+
 		function getUserFromFacebook($access_token){
 		
 			// look user up server-side
 			$url = 	'https://graph.facebook.com/me?access_token=' . $access_token . 
 					"&fields=first_name,email,last_name,middle_name,location,birthday,gender";
+
 			$response = file_get_contents($url);
 
-			
 			// handle bad token
 			if(!$response || strpos($response, 'error') !== false) {
 				$this -> handleError("Bad access token.");
-			}
+			}			
 			
 			$userFromFacebook = json_decode($response, true);
 
@@ -345,30 +399,13 @@
 			// if user in database, return the uid
 			if($userFromDB) return $userFromDB['uid'];
 
-			// else, get an extended access token
-			$url = 	'https://graph.facebook.com' . 
-					'/oauth/access_token?grant_type=fb_exchange_token' .
-					'&client_id=' . $this -> config["facebook"]["appId"] .
-					'&client_secret=' . $this -> config["facebook_secret"] . 
-					'&fb_exchange_token=' . $access_token;
 			
-			$response = file_get_contents($url);
-
-			if(!$response || strpos($response, 'error') !== false) {
-				$this -> handleError("Unable to get extended access token.");
-			}
-
-
-			$tmp = explode('&', $response);
-			$tmp = $tmp[0];
-			$tmp = explode('=', $tmp);
-			$longevity_token = $tmp[1];
 
 			
 			// if not - add user to database
 			$newUser = $userFromFacebook;
 
-			$newUser['fbAccessToken'] = $longevity_token;
+			$newUser['fbAccessToken'] = $access_token;
 			
 			// - CREATE NEW USER OBJECT FROM FACEBOOK RETRIEVAL
 			if(isset($newUser['birthday'])) {
@@ -420,7 +457,7 @@
 			}
 
 			return array(
-				"message" => "Updated relationships for " . count($friends) . " people."
+				"message" => "Updated relationships for " . count($friendsList) . " people."
 			);
 		}
 	

@@ -2,71 +2,15 @@
 // SAFE LOGGER
 function logger(message){
 
-	$('#output').append('<br />');
-	$('#output').append(angular.toJson(message, true));
+	// $('#output').append('<br />');
+	// $('#output').append(angular.toJson(message, true));
 
 
 
 	if('console' in window && 'log' in console){
-		
+		console.log(message)		
 	}
 }
-
-
-/*************************************************************
-// GET GEOPOSITION
-// USUALLY WORKS ON MOBILE - INCONSISTENT AT BEST OVER WI-FI
-*************************************************************/		
-var here = {
-	hasLocation : false,
-	active : true
-}
-function updateLocation(position){
-
-	if(!here.active){
-		logger("has position again");
-		logger(position);	
-		here.active = true;
-	}
-
-
-	here.hasLocation = true;
-	here.lat = position.coords.latitude;
-	here.lon = position.coords.longitude;
-	if(appHandleUpdatedLocation) appHandleUpdatedLocation();
-}
-
-
-// IF WE GET A FAILURE, DEFAULT THEM TO FRANKLIN AND CONGRESS
-// ToDo: GeoCode by City and store in user table
-function locationFailure(error) { 
-
-	if(here.active){
-		logger("failure to geo-position");
-		logger(error);	
-		here.active = false;
-	}
-
-	here.hasLocation = true;
-	here.lat = 43.661471;
-	here.lon = -70.255326;
-	if(appHandleUpdatedLocation) appHandleUpdatedLocation();
-}
-
-if (navigator.geolocation) {
-
-	// not currently using options, but they're there
-	// https://developer.mozilla.org/en-US/docs/Web/API/PositionOptions
-	var options = {};
-
-	navigator.geolocation.getCurrentPosition(updateLocation, locationFailure);
-	navigator.geolocation.watchPosition(updateLocation, locationFailure);
-} else {
-	locationFailure("no browser support");
-}
-
-
-
 
 
 
@@ -86,7 +30,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 		$scope.init = function(){
 
 			$scope.dictionary = dictionary;
-			$scope.fb_config = fb_config;
+			$scope.fb_config = introducr_settings.facebook;
 			$scope.here = here;
 
 			$scope.loaded = false;
@@ -104,7 +48,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			$scope.user = {}; // placeholder - should load out of cookie
 
 			// init socket controller
-			$scope.socketController.init(socket_params);
+			$scope.socketController.init(introducr_settings.socket);
 			$scope.feedController.init();
 			
 			// bring up selected person
@@ -115,12 +59,25 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			//  load state from cookie
 			$scope.cookieMonster.load();
 
+
+			var tmp = window.location.href.split('code=');
+			var fb_code =  (tmp.length > 1) ? tmp[1] : false;
+			// if(fb_cod){
+			// 	fb_token = fb_token.split('#')[0];
+			// }
+			// console.log(fb_token);
+
 			// and launch app
 			if($scope.sessionInCookie) {
 				$scope.search.here = $scope.user.here;
 				$scope.hereMapImg = $scope.getMapForPoint($scope.user.here);
 				$scope.loadInitialView();
 				$scope.apiClient.loginUser(); // runs in the background
+			}
+			else if(fb_code){
+				$scope.user = {
+			 		fb_code : fb_code			 	}				
+			 	$scope.apiClient.loginUser();
 			}
 			else {
 				$scope.cookieMonster.clear();
@@ -151,7 +108,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 			loginUser : function(){
 
-				if(!("user" in $scope) || !("fbAccessToken" in $scope.user)) {
+				if(!("user" in $scope)){
 					logger("tried to login to app without a user in the cookie");
 					return;
 				}
@@ -163,10 +120,23 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 				//  now that we have an access token, renew server session (in the background)
 				var request = {
-					access_token: $scope.user.fbAccessToken,
 					search_params: $scope.search,
 					verb: "loginUser"
 				}
+
+
+				if(("fbAccessToken" in $scope.user)) {
+					request.access_token = $scope.user.fbAccessToken;
+				}
+				else if("fb_code" in $scope.user){
+					request.fb_code = $scope.user.fb_code;
+				}
+				else {
+					logger("tried to before feed controller was initialized");
+					return;
+				}
+
+
 				$scope.apiClient.postData(request, function(response){
 
 					// if their token doesn't validate on our server, log them out
@@ -751,21 +721,24 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 		$scope.login = function() {	
 
-			$scope.loadView("loading");
+
+			window.location = $scope.fb_config.auth_url;
+
+			// $scope.loadView("loading");
 			
 
-			alert("about to login");
+			// alert("about to login");
 			
-			FB.login(function(res){
+			// FB.login(function(res){
 
-				alert("call back");
+			// 	alert("call back");
 
-				$scope.user = {
-					fbAccessToken : res.authResponse.accessToken
-				}				
-				$scope.apiClient.loginUser();
+			// 	$scope.user = {
+			// 		fbAccessToken : res.authResponse.accessToken
+			// 	}				
+			// 	$scope.apiClient.loginUser();
 
-			}, {scope: 'email,user_friends,user_about_me,user_location, user_birthday'});	
+			// }, {scope: });	
 		}
 	
 		
@@ -802,4 +775,60 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 	}
 	
 ]);
+
+/*************************************************************
+// GET GEOPOSITION
+// USUALLY WORKS ON MOBILE - INCONSISTENT AT BEST OVER WI-FI
+*************************************************************/		
+var here = {
+	hasLocation : false,
+	active : true
+}
+function updateLocation(position){
+
+	if(!here.active){
+		logger("has position again");
+		logger(position);	
+		here.active = true;
+	}
+
+
+	here.hasLocation = true;
+	here.lat = position.coords.latitude;
+	here.lon = position.coords.longitude;
+	if(appHandleUpdatedLocation) appHandleUpdatedLocation();
+}
+
+
+// IF WE GET A FAILURE, DEFAULT THEM TO FRANKLIN AND CONGRESS
+// ToDo: GeoCode by City and store in user table
+function locationFailure(error) { 
+
+	if(here.active){
+		logger("failure to geo-position");
+		logger(error);	
+		here.active = false;
+	}
+
+	here.hasLocation = true;
+	here.lat = 43.661471;
+	here.lon = -70.255326;
+	if(appHandleUpdatedLocation) appHandleUpdatedLocation();
+}
+
+if (navigator.geolocation) {
+
+	// not currently using options, but they're there
+	// https://developer.mozilla.org/en-US/docs/Web/API/PositionOptions
+	var options = {};
+
+	navigator.geolocation.getCurrentPosition(updateLocation, locationFailure);
+	navigator.geolocation.watchPosition(updateLocation, locationFailure);
+} else {
+	locationFailure("no browser support");
+}
+
+
+
+
 
