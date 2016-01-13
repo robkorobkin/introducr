@@ -125,7 +125,7 @@ class introducrSocketServer extends WebSocketServer {
 
 }
 
-extract($introducr_config['socket']);
+extract($introducr_config['client']['socket']);
 
 $socketServer 			= new introducrSocketServer($path,$port);
 $socketServer -> api 	= new introducrAPI($introducr_config);

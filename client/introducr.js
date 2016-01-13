@@ -238,7 +238,21 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				$scope.sessionInCookie = false;
 
 				$scope.acctController.loadLoginScreen();
-				if($scope.loggedIntoFacebook) FB.logout();
+
+				if('FB' in window){
+					FB.getLoginStatus(function(response) {
+						console.log(response);
+
+				        if (response && response.status === 'connected') {
+				            FB.logout(function(response) {
+				            	console.log("about to reload the page")
+
+				               // document.location.reload();
+				            });
+				        }
+				    });
+				}
+				
 			}
 		}
 		
@@ -527,33 +541,42 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				// ...
 			},
 
-			confirmTransmission : function(message){
+			confirmTransmission : function(transmission){
 				
 				var inConversation = false;
 
-				// you just sent it
-				if(message.senderId == $scope.user.uid){
-					this.chats[message.targetId].conversation.push(message);
-					if($scope.selected_person.uid == message.targetId){
-						this.currentText.content = '';
-						inConversation = true;
-					}
-				}
 
-				// you just received it
-				else if(message.targetId == $scope.user.uid){
-					var senderId = message.senderId;
-					if(senderId in this.chats){
-						this.chats[message.senderId].conversation.push(message);	
-						if($scope.selected_person.uid == message.senderId){
+				switch(transmission.subject){
+
+					case "new message" :
+						var message = transmission.body.message;
+						var senderId = message.senderId;
+						if(senderId in this.chats){
+							this.chats[message.senderId].conversation.push(message);	
+							if($scope.selected_person.uid == message.senderId){
+								inConversation = true;
+							}
+						}
+						else {
+							this.youveGotMail(message);
+						}
+					break;
+
+					case "message sent" :
+						var message = transmission.body.message;
+						var isOnline = transmission.isOnline;
+						if(message.senderId == message.targetId) break;
+						this.chats[message.targetId].conversation.push(message);
+						if($scope.selected_person.uid == message.targetId){
+							this.currentText.content = '';
 							inConversation = true;
 						}
-					}
-					else {
-						this.youveGotMail(message);
-					}
-					
+
+					break;
+
 				}
+
+			
 				$scope.$digest();
 
 				if(inConversation){
@@ -604,12 +627,17 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 							   
 					this.socket.onmessage = function(envelope) { 
 						
-						var message = angular.fromJson(envelope.data);
+						var transmission = angular.fromJson(envelope.data);
 
-						logger("new envelope in the mailbox");
-						logger(message);
-
-							
+						if("status" in transmission && transmission.status == "success"){
+							$scope.chatController.confirmTransmission(transmission);	
+						}
+						else {
+							console.log("socket spew:")
+							console.log(envelope);
+							console.log(transmission);
+						}
+						
 					
 					};
 							   
@@ -688,18 +716,24 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 						logger("connected to facebook")
 
-						// if they're session is fresh
-						if(!$scope.sessionInCookie) {
-							logger("no cookie in session")
-							$scope.loadView("loading");
-							$scope.user.fbAccessToken = res.authResponse.accessToken;
-						}
-
-						// $scope.cookieMonster.save();						
+			
 					}
 
 
 				});
+
+
+				FB.getLoginStatus(function(response) {
+					console.log(response);
+
+			        if (response && response.status === 'connected') {
+			            // FB.logout(function(response) {
+			            // 	console.log("about to reload the page")
+
+			            //    // document.location.reload();
+			            // });
+			        }
+			    });
 			};
 
 
@@ -813,7 +847,7 @@ function locationFailure(error) {
 	here.hasLocation = true;
 	here.lat = 43.661471;
 	here.lon = -70.255326;
-	if(appHandleUpdatedLocation) appHandleUpdatedLocation();
+	//if(appHandleUpdatedLocation) appHandleUpdatedLocation();
 }
 
 if (navigator.geolocation) {
@@ -823,7 +857,7 @@ if (navigator.geolocation) {
 	var options = {};
 
 	navigator.geolocation.getCurrentPosition(updateLocation, locationFailure);
-	navigator.geolocation.watchPosition(updateLocation, locationFailure);
+	//navigator.geolocation.watchPosition(updateLocation, locationFailure);
 } else {
 	locationFailure("no browser support");
 }
