@@ -1,11 +1,27 @@
 #!/usr/bin/env php
 <?php
 
-require_once('server/sockets/websockets.php');
-require_once("introducr-config.php");
-require_once("server/introducr_api.php");
-require_once('server/rkdatabase.php');
+fclose(STDOUT);
+fclose(STDERR);
+$STDOUT = fopen('logs/socket_runtime.log', 'a+');
+$STDERR = fopen('logs/error.log', 'a+');
+date_default_timezone_set('America/New_York');
+ini_set("display_errors", "stderr");
+ini_set("error_log", 'logs/error.log');
 
+
+// LOAD FRAMEWORK
+require_once('model/framework/rkdatabase.php');
+require_once('model/framework/websockets.php');
+
+// LOAD DATA MODEL
+require_once("model/introducr-config.php");
+require_once("model/introducr_model.php");
+
+
+//print_r($STDOUT);
+
+echo "test"
 
 
 class introducrSocketServer extends WebSocketServer {
@@ -21,6 +37,11 @@ class introducrSocketServer extends WebSocketServer {
 		// check user for all actions other than registration
 		if(!isset($verb)) $this -> log_error($sender, "no action requested");
 		if(!isset($uid) && $verb != "register") $this -> log_error($sender, "no sender id");
+
+		if($verb == "register") {
+			$this -> stdout(date('l - F j, Y - g:i:s A') . "\tUSER LOGIN\t" . $name . "\n");
+		}
+
 
 /* -- CAN'T READ FROM ONE SERVER TO THE OTHER, MAYBE GO THROUGH MYSQL? POSTPONE
 		session_start();
@@ -52,9 +73,7 @@ class introducrSocketServer extends WebSocketServer {
 	
 	
 	protected function connected ($user) {
-		// this is triggered when a new user joins
-		$response = array("message" => "hello");
-		$this -> send($user, json_encode($response));
+		// do nothing when user connects
 	}
 
 	protected function selectUser ($user) {

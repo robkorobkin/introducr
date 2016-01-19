@@ -29,15 +29,21 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 		$scope.init = function(){
 
+			// load settings
 			$scope.dictionary = dictionary;
 			$scope.fb_config = introducr_settings.facebook;
-			$scope.here = here;
-
-			$scope.loaded = false;
-			$scope.sessionEstablished = false;
-			$scope.loggedIntoFacebook = false;
-			
 			$scope.appName = 'introducr';
+			
+
+			// default map to Franklin & Congress
+			$scope.defaultLocation = {
+				lat : 43.661471,
+				lon : -70.255326
+			};
+
+
+			// initialize view state
+			$scope.loaded = false;
 			$scope.view = 'loading';
 			$scope.header = {
 				show : false
@@ -45,9 +51,13 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			$scope.footer = {
 				show : false
 			}
-			$scope.user = {}; // placeholder - should load out of cookie
+			
 
-			// init socket controller
+			//  read state from cookie
+			$scope.cookieMonster.load();
+
+
+			// init ssocket controller
 			$scope.socketController.init(introducr_settings.socket);
 			$scope.feedController.init();
 			
@@ -56,38 +66,29 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				pics : {}
 			}
 			
-			//  load state from cookie
-			$scope.cookieMonster.load();
-
+			
 
 			var tmp = window.location.href.split('code=');
 			var fb_code =  (tmp.length > 1) ? tmp[1] : false;
-			// if(fb_cod){
-			// 	fb_token = fb_token.split('#')[0];
-			// }
-			// console.log(fb_token);
+			
 
 			// and launch app
 			if($scope.sessionInCookie) {
-				$scope.search.here = $scope.user.here;
-				$scope.hereMapImg = $scope.getMapForPoint($scope.user.here);
 				$scope.loadInitialView();
 				$scope.apiClient.loginUser(); // runs in the background
 			}
 			else if(fb_code){
 				$scope.user = {
-			 		fb_code : fb_code			 	}				
+			 		fb_code : fb_code			 	
+			 	}				
 			 	$scope.apiClient.loginUser();
 			}
 			else {
-				$scope.cookieMonster.clear();
+				$scope.loadView('login');
 			}
 
 
 
-
-			// now that we know we have a good access token, load facebook sdk
-			$scope.loadFB();
 			
 		}
 		
@@ -98,11 +99,12 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			
 			postData : function(request, f){
 				if("user" in $scope) request.uid = $scope.user.uid;
-				$.post('introducr.php', request, function(response){
+				$.post('server/introducr_api.php', request, function(response){
 					if('error' in response && response.error == "logged out"){
-						 $scope.cookieMonster.clear();
+						 // $scope.apiClient.logoutUser();
 					}
 					else if(f) f(response);
+					$scope.$digest();
 				}, 'json');
 			},
 
@@ -114,7 +116,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				}
 
 				if(!("search" in $scope)) {
-					logger("tried to before feed controller was initialized");
+					logger("tried to login before feed controller was initialized");
 					return;
 				}				
 
@@ -132,7 +134,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					request.fb_code = $scope.user.fb_code;
 				}
 				else {
-					logger("tried to before feed controller was initialized");
+					logger("tried to login before user was logged into facebook");
 					return;
 				}
 
@@ -142,6 +144,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					// if their token doesn't validate on our server, log them out
 					if("error" in response){ 
 						$scope.cookieMonster.clear();
+						$scope.loadView('login');
 					}
 
 					// else update session
@@ -149,7 +152,8 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 						$scope.user = response.user;
 						
 						// ToDo: Load feed from login response
-						$scope.feedController.loadFeed(response.feedList.checkins);
+						if($scope.view == 'feed') $scope.feedController.loadFeed(response.feedList.checkins);
+						if(parseInt($scope.user.isNew)) $scope.loaded = false;
 						
 						// if you're just logging in...
 						if(!$scope.loaded){
@@ -163,10 +167,30 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					$scope.$digest();
 					
 				});
-
-
-			}
+			},
 		
+			logoutUser : function(){
+
+				if($scope.view != 'login'){
+					$scope.loadView('loading');	
+				}
+
+				var logout_url = 'https://www.facebook.com/logout.php?next=' + encodeURIComponent(introducr_settings.base_url) + '&access_token=' + $scope.user.fbAccessToken;
+
+				$scope.user = {};
+				$scope.loaded = false;
+				$scope.sessionInCookie = false;
+
+				$scope.acctController.loadLoginScreen();
+
+				$scope.cookieMonster.clear();	
+				$scope.loadView('login');
+				
+				
+				console.log(logout_url);
+				window.location = logout_url;
+			}
+
 		}
 		
 		
@@ -174,11 +198,16 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 		// VIEW MANAGER / ROUTER
 		$scope.loadView = function(view, screen){
 
-			logger("trying to load: " + view)
+			//logger("trying to load: " + view + ' - ' + screen)
 			
 			if(view == "loading" || view == "login") $scope.footer.show = false;
+			
+			// if the user is in the initial account set-up phase, don't show the bottom navigation
+			else if('isNew' in $scope.user && parseInt($scope.user.isNew) == 1) $scope.footer.show = false;
+
 			else $scope.footer.show = true;
 			
+
 			$scope.view = view;
 			if(screen) $scope.screen = screen;
 
@@ -214,45 +243,39 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 		// COOKIE MONSTER - MAINTAIN STATE IN BETWEEN SESSIONS
 		$scope.cookieMonster = {
+
+			load : function(){
+
+				// load user
+				var user = localStorageService.get('user');		
+				$scope.sessionInCookie = (user && 'isNew' in user);
+				$scope.user = (user) ? user : {};
+
+				// load feed
+				var feedList = localStorageService.get('feedList');
+				$scope.feedList = (feedList) ? feedList : [];
+
+				// load geolocation
+				var here = localStorageService.get('here');
+				here = (here) ? here : $scope.defaultLocation;
+				here.hasLocation = false;
+				$scope.here = here;
+				
+			},
+
 			save : function(){
-				if(here.hasLocation) $scope.user.here = here;
+
+				if('isNew' in $scope.user) $scope.user.isNew = parseInt($scope.user.isNew);
 				localStorageService.set('user', $scope.user);
 
 				var feedList = $scope.feedController.feedList;
 				localStorageService.set('feedList', feedList);
+
+				localStorageService.set('here', $scope.here);	
 			},
-			load : function(){
 
-				var user = localStorageService.get('user');
-				var feedList = localStorageService.get('feedList');
-
-				$scope.sessionInCookie = (user && 'isNew' in user);
-				$scope.user = (user) ? user : {};
-				$scope.feedList = (feedList) ? feedList : [];
-
-			},
 			clear : function(){
 				localStorageService.set('user', {});
-				$scope.user = {};
-				$scope.loaded = false;
-				$scope.sessionInCookie = false;
-
-				$scope.acctController.loadLoginScreen();
-
-				if('FB' in window){
-					FB.getLoginStatus(function(response) {
-						console.log(response);
-
-				        if (response && response.status === 'connected') {
-				            FB.logout(function(response) {
-				            	console.log("about to reload the page")
-
-				               // document.location.reload();
-				            });
-				        }
-				    });
-				}
-				
 			}
 		}
 		
@@ -272,11 +295,13 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			loadLoginScreen : function(){
 				$scope.header.show = false;
 				$scope.footer.show = false;
-				logger("trying to load login screen");
-				$scope.loadView('login');
-				
+				$scope.loadView('login');				
 			},
 			
+			loadScreen : function(screenNumber){
+				$scope.loadView('account', screenNumber)
+			},
+
 			saveAndProgress : function(){
 				if(this.sending) return;
 
@@ -284,7 +309,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 				// validate
 				var validate = {
-					1 : ['first_name', 'last_name', 'email'],
+					1 : ['first_name', 'last_name', 'email', 'city'],
 					2 : ['bio']
 				}
 				var fields = validate[$scope.screen];
@@ -311,11 +336,15 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 					// iterate to next screen
 					$scope.acctController.sending = false;
-					$scope.screen++;
-					if($scope.screen == 3) {
-						$scope.feedController.open();
+					if($scope.isNew){
+						$scope.screen++;
+						if($scope.screen == 3) {
+							$scope.feedController.loadFeed();
+						}						
 					}
-					$scope.$digest();
+					else {
+						$scope.loadView('account', 'menu');
+					}
 				});
 				
 						
@@ -339,12 +368,13 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			submit : function(){
 				if(this.status == "sending") return;
 
-				this.status = "sending";
+				$scope.loadView("loading");
 
-				if($scope.here.hasLocation){
-					this.newCheckin.lat = $scope.here.lat;
-					this.newCheckin.lon = $scope.here.lon;
-				}
+				
+				// APPEND GEOLOCATION - ToDo: clarify if postion from default or locator
+				this.newCheckin.lat = $scope.here.lat;
+				this.newCheckin.lon = $scope.here.lon;
+			
 
 				var request = {
 					verb 	 : "postCheckin",
@@ -371,13 +401,28 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 			init : function(){
 				
+
+				// GEOLOCATOR - Initialized when cookie loaded
+				// ToDo: Default by City and store in user table
+				// ToDo: Implement geolocation options - https://developer.mozilla.org/en-US/docs/Web/API/PositionOptions
+
+				$scope.hereMapImg = Utilities.getMapForPoint($scope.here);
+
+				if (navigator.geolocation) {
+					var options = {};
+					navigator.geolocation.getCurrentPosition(this.updateLocation, this.locationFailure);
+					navigator.geolocation.watchPosition(this.updateLocation, this.locationFailure);
+				}
+
+
 				$scope.search = {
 					search_str : "",
-					proximity : "1",
+					proximity : "5",
 					gender: "",
 					age: "",
 					sort_order: "time",
-					justFriends: false
+					justFriends: false,
+					here: $scope.here
 				}
 
 				this.feedList = [];
@@ -389,7 +434,25 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				this.setMode("feed");
 			},
 
+			updateLocation : function(position){
+				$scope.here = {
+					hasLocation : true,
+					lat : position.coords.latitude,
+					lon : position.coords.longitude
+				}
+				$scope.hereMapImg = Utilities.getMapForPoint($scope.here);
+				$scope.search.here = $scope.here;
+				$scope.cookieMonster.save();
+			},
+
+
+			locationFailure : function(error) { 
+				logger("failure to geo-position");
+				logger(error);	
+			},
+
 			search : function(){
+				$scope.loadView('loading');
 				this.feedList = [];
 				this.updateFeed('feed');
 			},
@@ -413,19 +476,16 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					break;
 
 				}
-
 			},
-
 			
 			updateFeed : function(mode){
 				this.setMode(mode);
+				$scope.loadView("loading");
 				$scope.apiClient.postData(this.request, function(response){
 					$scope.feedController.loadFeed(response.checkins);
 					$scope.$digest();
 				});
 			},
-
-			
 
 			loadFeed : function(checkins){
 
@@ -446,12 +506,12 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 						checkin.dateRecentObj = new Date(t[0], t[1]-1, t[2], t[3], t[4], t[5]);
 					}
 
-					checkin.lastCheckinMap = $scope.getMapForPoint(checkin);
+					checkin.lastCheckinMap = Utilities.getMapForPoint(checkin);
 					
 					self.feedList.push(checkin);
 				});
 
-				logger(this.feedList);
+				//logger(this.feedList);
 
 				if(this.feedList.length == 0) {
 					$scope.loadView("feed", "empty");
@@ -463,9 +523,6 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				if($scope.loaded){
 					$scope.cookieMonster.save();
 				}
-				
-				
-				
 			}
 
 			
@@ -479,11 +536,10 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 			openFromCheckin : function(checkin){
 				$scope.selected_person = checkin;
-				$scope.selected_person.lastCheckin = checkin;
 				$scope.loadView('person');
 
 				// if no chat, show profile
-				if(checkin.lastMessageDate == '0000-00-00 00:00:00'){
+				if(!checkin.lastMessageDate || checkin.lastMessageDate == '0000-00-00 00:00:00'){
 					$scope.screen = 'profile';
 					$scope.prev = "profile";
 				}
@@ -593,8 +649,14 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				if($scope.prev == "profile") $scope.loadView('person', 'profile');
 				else {
 					$scope.screen = '';
-					if($scope.prev == "feed") $scope.feedController.open();
-					if($scope.prev == "recents") $scope.feedController.loadRecents();
+					if($scope.prev == "feed") {
+						$scope.feedController.updateFeed('feed');
+						$scope.loadView('feed', 'feed')
+					}
+					if($scope.prev == "recents") {
+						$scope.feedController.updateFeed('recents');
+						$scope.loadView('feed', 'recents')
+					}
 				}
 
 			},
@@ -622,7 +684,6 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					
 					this.socket.onopen = function(msg) { 
 						$scope.socketController.isOpen = true;
-						if("user" in $scope) $scope.socketController.register();
 					};
 							   
 					this.socket.onmessage = function(envelope) { 
@@ -655,7 +716,8 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				if(this.isOpen) {
 					var req = {
 						verb : "register",
-						uid : $scope.user.uid
+						uid : $scope.user.uid,
+						name : $scope.user.first_name + ' ' + $scope.user.last_name
 					}
 					this.send(req);
 				}
@@ -685,123 +747,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 		}
 		
 		
-		
-		///////////////////////////////////////////////////////////////////////////////////
-		// DATA MODEL STUFF
-		
-		$scope.parsePerson = function(person){
 	
-		}
-		
-		///////////////////////////////////////////////////////////////////////////////////
-		// FACEBOOK CONNECTOR STUFF
-
-		$scope.loadFB = function(){
-		
-			$window.fbAsyncInit = function() {
-				FB.init({ 
-					appId: $scope.fb_config.appId, 
-					cookie: true,
-					xfbml: true,
-				    version: 'v2.5'
-				});
-
-				
-				// on load / post-login, if you're logged in, update friends list
-				FB.Event.subscribe('auth.authResponseChange', function(res) {
-
-					if (res.status === 'connected') {
-						$scope.loggedIntoFacebook = true;
-
-
-						logger("connected to facebook")
-
-			
-					}
-
-
-				});
-
-
-				FB.getLoginStatus(function(response) {
-					console.log(response);
-
-			        if (response && response.status === 'connected') {
-			            // FB.logout(function(response) {
-			            // 	console.log("about to reload the page")
-
-			            //    // document.location.reload();
-			            // });
-			        }
-			    });
-			};
-
-
-			// load the Facebook javascript SDK
-			 (function(d, s, id){
-			 var js, fjs = d.getElementsByTagName(s)[0];
-			 if (d.getElementById(id)) {return;}
-			 js = d.createElement(s); js.id = id;
-			 js.src = "//connect.facebook.net/en_US/sdk.js";
-			 fjs.parentNode.insertBefore(js, fjs);
-		   }(document, 'script', 'facebook-jssdk'));
-	
-		}
-
-
-		
-
-
-
-		$scope.login = function() {	
-
-
-			window.location = $scope.fb_config.auth_url;
-
-			// $scope.loadView("loading");
-			
-
-			// alert("about to login");
-			
-			// FB.login(function(res){
-
-			// 	alert("call back");
-
-			// 	$scope.user = {
-			// 		fbAccessToken : res.authResponse.accessToken
-			// 	}				
-			// 	$scope.apiClient.loginUser();
-
-			// }, {scope: });	
-		}
-	
-		
-	
-		///////////////////////////////////////////////////////////////////////////////////
-		// MAP STUFF
-		$scope.getMapForPoint = function(point){
-
-
-			var map_url =
-				"http://maps.googleapis.com/maps/api/staticmap?center=" 
-				+ point.lat + ',' + point.lon + 
-				"&zoom=14&size=300x200&sensor=false" +
-				"&markers=color:blue|" + point.lat + "," + point.lon;
-			return map_url;
-		}
-
-		// update stored user information when geoposition updates (polls)
-		appHandleUpdatedLocation = function(){
-
-			//logger("handle updated location")
-
-
-			// if we're logged in - update user w. new location
-			if(('user' in $scope) && ("fbAccessToken" in $scope.user)) $scope.cookieMonster.save();
-			$scope.hereMapImg = $scope.getMapForPoint(here);
-			$scope.search.here = here;
-		}
-		
 		
 		
 		$scope.init();
@@ -810,59 +756,22 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 	
 ]);
 
-/*************************************************************
-// GET GEOPOSITION
-// USUALLY WORKS ON MOBILE - INCONSISTENT AT BEST OVER WI-FI
-*************************************************************/		
-var here = {
-	hasLocation : false,
-	active : true
-}
-function updateLocation(position){
 
-	if(!here.active){
-		logger("has position again");
-		logger(position);	
-		here.active = true;
+
+var Utilities = {
+	
+	getMapForPoint : function(point){
+	
+		// validate
+		if(typeof point != 'object' || !('lat' in point) || !('lon' in point)){
+			logger("invalid input"); console.log(point);
+		}
+
+		var map_url =
+			"http://maps.googleapis.com/maps/api/staticmap?center=" 
+			+ point.lat + ',' + point.lon + 
+			"&zoom=14&size=300x200&sensor=false" +
+			"&markers=color:blue|" + point.lat + "," + point.lon;
+		return map_url;
 	}
-
-
-	here.hasLocation = true;
-	here.lat = position.coords.latitude;
-	here.lon = position.coords.longitude;
-	if(appHandleUpdatedLocation) appHandleUpdatedLocation();
 }
-
-
-// IF WE GET A FAILURE, DEFAULT THEM TO FRANKLIN AND CONGRESS
-// ToDo: GeoCode by City and store in user table
-function locationFailure(error) { 
-
-	if(here.active){
-		logger("failure to geo-position");
-		logger(error);	
-		here.active = false;
-	}
-
-	here.hasLocation = true;
-	here.lat = 43.661471;
-	here.lon = -70.255326;
-	//if(appHandleUpdatedLocation) appHandleUpdatedLocation();
-}
-
-if (navigator.geolocation) {
-
-	// not currently using options, but they're there
-	// https://developer.mozilla.org/en-US/docs/Web/API/PositionOptions
-	var options = {};
-
-	navigator.geolocation.getCurrentPosition(updateLocation, locationFailure);
-	//navigator.geolocation.watchPosition(updateLocation, locationFailure);
-} else {
-	locationFailure("no browser support");
-}
-
-
-
-
-

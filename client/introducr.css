@@ -6,7 +6,7 @@
 */
 html 			{ height: 100%; }
 
-body			{ 	margin: 0; font-family: 'Open Sans', sans-serif;  background: #efede7; 
+body			{ 	margin: 0; font-family: 'Open Sans', sans-serif;  background: white;
 					display: flex; flex-direction: column; height: 100%; overflow: hidden; width: 100%; }
 a				{ cursor: pointer; }
 img				{ display: block; }
@@ -34,7 +34,7 @@ img				{ display: block; }
 
 /* FOOTER */
 .footer						{ display: flex; flex-direction: row; height: 45px; line-height: 32px; width: 100%; 
-								background: white; color: #777; font-size: 18px; margin: 0;}
+								background: #eee; color: #777; font-size: 18px; margin: 0;}
 .footer_nav					{ width: 100%; max-width: 500px; margin: 0px auto; }
 .footer .link:first-child 	{ border-left: none; }
 .footer .link 				{ text-align: center; cursor: pointer; border-left: dashed 1px #ccc; height: 45px; width: 20%; float: left;}

@@ -81,8 +81,7 @@
 		. '&redirect_uri=' . urlencode($config['client']['base_url'])
 		. '&scope=' . $perms;
 	
-
-
+	
 	$config['dictionary']['us_state_abbrevs_names'] = array(
 		'AL'=>'ALABAMA',
 		'AK'=>'ALASKA',

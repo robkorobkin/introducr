@@ -1,7 +1,7 @@
 <?php
 
 //require_once('./daemonize.php');
-require_once('users.php');
+require_once('websockets_users.php');
 
 abstract class WebSocketServer {
 
@@ -23,8 +23,7 @@ abstract class WebSocketServer {
     socket_bind($this->master, "0.0.0.0", $port)                  or die("Failed: socket_bind()");
     socket_listen($this->master,20)                               or die("Failed: socket_listen()");
     $this->sockets['m'] = $this->master;
-	$this -> stdout('test from root class');
-    $this->stdout("Server started\nListening on: $addr:$port\nMaster socket: ".$this->master);
+    $this->stdout("\n\n--\n\nServer started\nListening on: $addr:$port\nMaster socket: ".$this->master . "\n" . date('l - F j, Y - g:i:s A') . "\n\n");
 
     
   }
@@ -42,8 +41,6 @@ abstract class WebSocketServer {
     if ($user->handshake) {
       $message = $this->frame($message,$user);
       $result = @socket_write($user->socket, $message, strlen($message));
-      echo "\n\n\n THIS IS THE STATUS OF THE TRANSMISSION \n\n";
-      print_R($result);
     }
     else {
       // User has not yet performed their handshake.  Store for sending later.
@@ -99,7 +96,7 @@ abstract class WebSocketServer {
           } 
           else {
             $this->connect($client);
-            $this->stdout("Client connected. " . $client);
+            //$this->stdout("Client connected. " . $client);
           }
         } 
         else {

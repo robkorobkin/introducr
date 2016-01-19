@@ -52,8 +52,8 @@
 
 
 		<!-- APP -->
-		<script src="introducr.php?lib=js"></script>
-		<link href="introducr.php?lib=css" rel="stylesheet" type="text/css" />
+		<script src="server/introducr_api.php?lib=js"></script>
+		<link href="server/introducr_api.php?lib=css" rel="stylesheet" type="text/css" />
 
 	</head>
 	
@@ -100,7 +100,7 @@
 					<div class="loginMain">
 						<p>Click below to start using {{appName}}</p>
 						<div class="btnFrame">
-							<a ng-click="login()">
+							<a href="{{fb_config.auth_url}}">
 								<img src="client/images/fbcnct.png" />
 							</a>
 						</div>
@@ -108,7 +108,8 @@
 				</div>
 				
 				<!-- MAKE CHECK-IN INTERFACE -->
-				<div ng-if="view == 'checkIn'" class="panel panel-default primaryFrame checkinFrame" style="padding-top: 16px">
+				<div ng-if="view == 'checkIn'" class="primaryFrame checkinFrame" style="padding-top: 16px">
+					<h2>Check In</h2>
 					<div class="checkin_form">
 						<div class="form-group" style="margin: 0">
 							<label class="control-label" for="locationName">Where are you?</label>
@@ -132,7 +133,7 @@
 				</div>
 				
 				<!-- ACCOUNT MANAGEMENT INTERFACE -->
-				<div ng-if="view == 'account'" class=" panel panel-default primaryFrame" style="padding: 16px">
+				<div ng-if="view == 'account'" class=" primaryFrame" style="padding: 16px">
 					<div ng-if="screen == 1">
 						<div class="form-group" style="margin: 0" ng-class="{'has-error': acctController.needs.first_name}">
 							<label class="control-label" for="user_first_name" >First Name</label>
@@ -150,7 +151,7 @@
 
 						<div class="row">
 							<div class="col-sm-8 col-xs-8">
-								<div class="form-group" style="margin: 0">						 
+								<div class="form-group" style="margin: 0" ng-class="{'has-error': acctController.needs.city}">						 
 									<label class="control-label" for="user_city">City</label>
 									<input class="form-control" id="user_city" type="text" ng-model="user.city">
 								</div>
@@ -200,7 +201,8 @@
 							</div>					
 						</div>
 						<div style="margin: 5px; text-align: center;">
-							<a class="btn btn-raised btn-success" ng-click="acctController.saveAndProgress()">Next</a>
+							<a class="btn btn-raised btn-success" ng-click="acctController.saveAndProgress()" ng-if="user.isNew">Next</a>
+							<a class="btn btn-raised btn-success" ng-click="acctController.saveAndProgress()" ng-if="!user.isNew">Save</a>
 						</div>
 					</div>
 					
@@ -213,13 +215,19 @@
 							</div>
 						</div>
 						<div style="margin: 5px; text-align: center;">
-							<a class="btn btn-raised btn-success" ng-click="acctController.saveAndProgress()">Start Meeting People</a>
+							<a class="btn btn-raised btn-success" ng-click="acctController.saveAndProgress()" ng-if="user.isNew">Start Meeting People</a>
+							<a class="btn btn-raised btn-success" ng-click="acctController.saveAndProgress()" ng-if="!user.isNew">Save</a>
 						</div>
 					</div>
 
 					<div ng-if="screen == 'menu'"> 
+						<h2 style="text-align: center">My Account</h2>
 						<div style="margin: 5px; text-align: center;">
-							<a class="btn btn-raised btn-success" ng-click="cookieMonster.clear()">Log Out</a>
+							<a class="btn btn-raised btn-success" ng-click="acctController.loadScreen(1)">Edit Profile</a>
+							<br /><br />
+							<a class="btn btn-raised btn-success" ng-click="acctController.loadScreen(2)">Edit Bio</a>
+							<br /><br />
+							<a class="btn btn-raised btn-success" ng-click="apiClient.logoutUser()">Log Out</a>
 						</div>
 					</div>					
 				</div>
@@ -317,14 +325,14 @@
 					</div>
 					
 					<div style="margin: 5px; text-align: center;">
-						<a class="btn btn-raised btn-success" ng-click="feedController.open()">Search</a>
+						<a class="btn btn-raised btn-success" ng-click="feedController.search()">Search</a>
 					</div>
 
 				</div>
 				
 				<!-- PERSON INTERFACE -->
 				<div ng-if="view == 'person'" class="personView">
-					<div ng-if="screen == 'profile'" class=" panel panel-default primaryFrame">
+					<div ng-if="screen == 'profile'" class="primaryFrame">
 						<h3>{{selected_person.first_name}} {{selected_person.last_name}}</h3>
 						<img class="featureProfilePic" 
 							ng-src="//graph.facebook.com/{{selected_person.fbid}}/picture?type=large" />
@@ -335,11 +343,11 @@
 						<div class="checkinInfo" ng-if="selected_person.time">
 							<div>...</div>
 							<b>Last Check-In:</b>
-							{{selected_person.lastCheckin.location}}	
+							{{selected_person.location}}	
 							<img ng-src="{{selected_person.lastCheckinMap}}" class="checkinImage"/>	
 							<div class="checkin_caption">
 								{{selected_person.lastCheckin.dateObj | date:'MMM. d - h:ma'}}
-								<div ng-if="selected_person.lastCheckin.message != ''">{{selected_person.lastCheckin.message}}</div>
+								<div ng-if="selected_person.message != ''">{{selected_person.message}}</div>
 							</div>
 						</div>
 						<div class="bottomLinks">
@@ -370,7 +378,7 @@
 		<div class="footer panel panel-default" ng-if="footer.show">
 			<div class="footer_nav">
 				<div class="link checkIn" ng-click="checkinController.open()"
-					ng-class="{active : currentComponent == 'checkin'}">
+					ng-class="{active : view == 'checkIn'}">
 					<i class="glyphicon glyphicon-edit"></i>
 					<div>Check-In</div>
 				</div>
@@ -380,7 +388,7 @@
 					<div>Search</div>
 				</div>
 				<div class="link feed" ng-click="feedController.updateFeed('feed')"
-					ng-class="{active : currentComponent == 'feed'  && screen == 'feed'}">
+					ng-class="{active : view == 'feed' && feedController.mode == 'feed' && (screen == 'feed' || screen == 'empty')}">
 					<i class="glyphicon glyphicon-globe"></i>
 					<div>Feed</div>
 				</div>
@@ -398,7 +406,7 @@
 		</div>	
 		
 		<!-- FOOTER: CHAT INPUT -->		
-		<div class="chatInput panel panel-default" ng-if="screen == 'chat'">
+		<div class="chatInput" ng-if="screen == 'chat'">
 			<div class="col-sm-4 col-sm-offset-4 col-xs-12">
 				<div class="col-sm-10 col-xs-10" style="padding-left: 0;">
 					<textarea ng-model="chatController.currentText.content"></textarea>
