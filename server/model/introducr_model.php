@@ -82,6 +82,8 @@
 			// resolve discrepencies between client-side and server-side user models
 			unset($user['here']);  // ToDo: store user's last location?
 			unset($user['friendsList']);
+			unset($user['unreadChatsCount']);
+			
 
 			if($user['bio'] != ''){
 				$user['isActive'] = 1;
@@ -90,8 +92,10 @@
 
 			$where = array('uid' => (int) $user['uid']);
 			$this -> db -> update($user, "users", $where);
+			$user = $this ->_getUserByUid($user['uid']); 
+			$user['unreadChatsCount'] = $this -> _getUnreadChatsCount($uid);
 
-			return $this ->_getUserByUid($user['uid']);
+			return $user;
 		}
 	
 		function postCheckin(){
