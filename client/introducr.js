@@ -385,7 +385,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				this.newCheckin.lat = $scope.here.lat;
 				this.newCheckin.lon = $scope.here.lon;
 			
-
+				$scope.feedController.resetSearch();
 				var request = {
 					verb 	 : "postCheckin",
 					newCheckin : this.newCheckin,
@@ -424,7 +424,18 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					navigator.geolocation.watchPosition(this.updateLocation, this.locationFailure);
 				}
 
+				this.resetSearch();
+				
+				this.feedList = [];
+				
+				this.request = {
+					verb : "listCheckins"
+				};
+			
+				this.setMode("feed");
+			},
 
+			resetSearch : function(){
 				$scope.search = {
 					search_str : "",
 					proximity : "5",
@@ -434,14 +445,6 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					justFriends: false,
 					here: $scope.here
 				}
-
-				this.feedList = [];
-				
-				this.request = {
-					verb : "listCheckins"
-				};
-			
-				this.setMode("feed");
 			},
 
 			updateLocation : function(position){
