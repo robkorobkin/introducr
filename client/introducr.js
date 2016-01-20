@@ -155,10 +155,13 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					else {
 						$scope.user = response.user;
 						
-						// ToDo: Load feed from login response
-						
-						if($scope.feedList.length == 0) $scope.feedController.loadFeed(response.feedList.checkins);
+						// If feed list is empty, load it from login response
+						// ToDo: Load it above?
+						if($scope.feedList.length == 0) {
+							$scope.feedController.loadFeed(response.feedList.checkins);
+						}
 						if(parseInt($scope.user.isNew)) $scope.loaded = false;
+						$scope.cookieMonster.save();
 						
 						// if you're just logging in...
 						if(!$scope.loaded){
@@ -372,7 +375,6 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 				// validate
 				var valid = Utilities.validate(this.newCheckin, this.fields, this.needs)
-				console.log(this)
 
 				if(!valid) return;
 				
@@ -499,10 +501,9 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 				this.feedList = []; // ToDo: handle concatenating and redundancy
 				var checkins = (checkins) ? checkins : [];
-				var self = this;
 				
 				$.each(checkins, function(cIndex, checkin){
-					
+
 					// search results or recents can include people who've never checked in
 					if(checkin.time){
 						var t = checkin.time.split(/[- :]/);
@@ -516,10 +517,8 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 					checkin.lastCheckinMap = Utilities.getMapForPoint(checkin);
 					
-					self.feedList.push(checkin);
+					$scope.feedController.feedList.push(checkin);
 				});
-
-				//logger(this.feedList);
 
 				if(this.feedList.length == 0) {
 					$scope.loadView("feed", "empty");
@@ -625,13 +624,9 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 						// if we're in the chat - push the message onto the screen
 						if(senderId in this.chats){
 
-							console.log('conversation there');
-
 							this.chats[message.senderId].conversation.push(message);	
 							if($scope.chattingWith && $scope.chattingWith == message.senderId){
 								inConversation = true;
-
-								console.log('in conversation');
 
 								// send message
 								var request = {
