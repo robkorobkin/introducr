@@ -578,7 +578,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					}
 				}
 				$scope.apiClient.postData(request, function(response){
-					if(hasUnread) $scope.user.unreadChatsCount--;
+					if(hasUnread) $scope.user.unreadChatsCount = 0;
 					$scope.chatController.chats[$scope.selected_person.uid] = {
 						"conversation" : response.conversation,
 						"meta" : $scope.selected_person
