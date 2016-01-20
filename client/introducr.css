@@ -44,6 +44,11 @@ img				{ display: block; }
 .footer .link.active		{ color: #3b5998 !important; }
 .footer .link.active div	{ color: #3b5998 !important; }
 
+.footer .link.recents		{ position: relative;}
+.footer .link div.unreadChatsCount		{ position: absolute; top: 3px; right: 3px; background: red; color: white; font-size: 10px; border-radius: 8px; height: 16px; width: 16px; 
+										line-height: 16px; text-align: center}
+
+
 /* MAIN CONTENT */
 .appFrame 				{ flex: 1 1 0;  }
 .mainContent 			{ max-width: 500px; margin: 0 auto;}
@@ -55,7 +60,7 @@ img				{ display: block; }
 
 /* MAKE CHECKIN */
 .checkinImage		{ display: block; margin: 4px auto; max-width: 100%; }
-#newcheckin_message	{ font-size: 12px; height: 75px;}
+#newcheckin_message	{ font-size: 13px; height: 75px;}
 
 /* BROWSE CHECKINS */
 .checkinList		{ min-height: 100%; }
@@ -64,6 +69,7 @@ img				{ display: block; }
 .checkin .icon 		{ float: left; margin-right: 16px; }
 .checkin .icon img	{ border-radius: 50%; height: 50px; width: 50px; }
 .checkin .text		{ float: left; }
+.checkin .text .unreadPerson { font-weight: bold}
 .checkin .name		{ line-height: 30px; font-size: 17px; }
 .checkin .info		{ line-height: 20px; font-size: 11px; }
 .checkin .message	{ line-height: 20px; font-size: 11px; font-style: italic; }

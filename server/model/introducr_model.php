@@ -62,10 +62,12 @@
 			$where['uid'] = $uid;
 			$this -> db -> update($update, "users", $where);
 			
-			
+			$user = $this -> _getUserByUid($uid);
+			$user['unreadChatsCount'] = $this -> _getUnreadChatsCount($uid);
+
 			// return user record from database
 			return array(
-				"user" => $this -> _getUserByUid($uid),
+				"user" => $user,
 				"feedList" => $this -> listCheckins()
 			);
 			
@@ -128,6 +130,10 @@
 			$sql = "SELECT * FROM messages where (senderId=$me and targetId=$you) or (targetId=$me and senderId=$you) order by messageDate ASC";
 			$conversation = $this -> db -> get_results($sql);
 
+			// update chats count
+			$update = array('numUnread' => 0);
+			$where = array('selfId' => $this -> uid, 'otherId' => $you);
+			$this -> db -> update($update, 'relationships', $where);
 
 			$youFull = $this -> _getUserByUid($you);
 
@@ -140,6 +146,16 @@
 				"partner" => $you
 			);
 
+		}
+
+		function getRelationship($selfId, $otherId){
+			$sql = 'SELECT * from relationships where selfId=' . (int) $selfId . ' and otherId=' . (int) $otherId;
+			return $this -> db -> get_row($sql);
+		}
+
+		function markChatAsRead($relationship){
+			$update = array('numUnread' => 0);
+			$this -> db -> update($update, "relationships", $relationship);
 		}
 
 		
@@ -192,6 +208,14 @@
 			return $user;
 		}
 
+		function _getUnreadChatsCount($uid){
+			$sql = 'SELECT COUNT(relationshipId) as unreadChats from relationships where numUnread <> 0 and selfId=' . $uid;
+			$count = $this -> db -> get_row($sql);
+			return $count['unreadChats']; 
+		}
+
+
+		
 		function _getCheckins($search_params){
 
 			extract($search_params);

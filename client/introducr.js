@@ -75,13 +75,13 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			// and launch app
 			if($scope.sessionInCookie) {
 				$scope.loadInitialView();
-				$scope.apiClient.loginUser(); // runs in the background
+				$scope.apiClient.logIntoIntroducr(); // runs in the background
 			}
 			else if(fb_code){
 				$scope.user = {
 			 		fb_code : fb_code			 	
 			 	}				
-			 	$scope.apiClient.loginUser();
+			 	$scope.apiClient.logIntoIntroducr();
 			}
 			else {
 				$scope.loadView('login');
@@ -108,7 +108,11 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				}, 'json');
 			},
 
-			loginUser : function(){
+			logIntoFacebook : function(){
+				window.location = $scope.fb_config.auth_url;
+			},
+
+			logIntoIntroducr : function(){
 
 				if(!("user" in $scope)){
 					logger("tried to login to app without a user in the cookie");
@@ -152,7 +156,8 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 						$scope.user = response.user;
 						
 						// ToDo: Load feed from login response
-						if($scope.view == 'feed') $scope.feedController.loadFeed(response.feedList.checkins);
+						
+						if($scope.feedList.length == 0) $scope.feedController.loadFeed(response.feedList.checkins);
 						if(parseInt($scope.user.isNew)) $scope.loaded = false;
 						
 						// if you're just logging in...
@@ -168,7 +173,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					
 				});
 			},
-		
+
 			logoutUser : function(){
 
 				if($scope.view != 'login'){
@@ -186,8 +191,6 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				$scope.cookieMonster.clear();	
 				$scope.loadView('login');
 				
-				
-				console.log(logout_url);
 				window.location = logout_url;
 			}
 
@@ -206,7 +209,8 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			else if('isNew' in $scope.user && parseInt($scope.user.isNew) == 1) $scope.footer.show = false;
 
 			else $scope.footer.show = true;
-			
+
+			$scope.chattingWith = false;
 
 			$scope.view = view;
 			if(screen) $scope.screen = screen;
@@ -313,15 +317,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					2 : ['bio']
 				}
 				var fields = validate[$scope.screen];
-				var goAhead = true;
-				$.each(fields, function(fIndex, field_name){
-					if($scope.user[field_name] == '') {
-						$scope.acctController.needs[field_name] = true;
-						goAhead = false;
-					}
-					else $scope.acctController.needs[field_name] = false;
-				});
-				if(!goAhead) return;
+				if(!Utilities.validate($scope.user, fields, $scope.acctController.needs)) return;
 
 				
 				// save updated user
@@ -329,14 +325,16 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				var request = {
 					user: $scope.user,
 					verb: 'updateUser'
-				}				
+				}
+				
 				$scope.apiClient.postData(request, function(user){
+					var wasNew = $scope.user.isNew;
 					$scope.user = user;
 					$scope.cookieMonster.save();
 
 					// iterate to next screen
 					$scope.acctController.sending = false;
-					if($scope.isNew){
+					if(wasNew){
 						$scope.screen++;
 						if($scope.screen == 3) {
 							$scope.feedController.loadFeed();
@@ -356,20 +354,30 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 		// CHECKIN CREATOR
 		$scope.checkinController = {
 			
+			fields : ['location', 'message'],
+			newCheckin : {},
+			needs : {},
+
 			open : function(){
-				this.status = "open";
-			
-				this.newCheckin = {
-					location : ""
+				for(var i in this.fields){
+					var property = this.fields[i];
+					this.newCheckin[property] = '';
+					this.needs[property] = false;
 				}
+
 				$scope.loadView("checkIn");
 			},
 			
 			submit : function(){
-				if(this.status == "sending") return;
 
+				// validate
+				var valid = Utilities.validate(this.newCheckin, this.fields, this.needs)
+				console.log(this)
+
+				if(!valid) return;
+				
+				// if good, throw up loading screen
 				$scope.loadView("loading");
-
 				
 				// APPEND GEOLOCATION - ToDo: clarify if postion from default or locator
 				this.newCheckin.lat = $scope.here.lat;
@@ -552,6 +560,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			openChat : function(){
 				$scope.screen = 'chat';
 				this.status = "loading";
+				$scope.chattingWith = $scope.selected_person.uid;
 				
 				// can we get this from cache?  close and open app?
 				this.currentText = {
@@ -560,6 +569,8 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				$scope.footer.show = false;
 				$scope.header.show = true;
 
+				var hasUnread = (parseInt($scope.selected_person.numUnread) != 0);
+
 				var request = {
 					"verb" : "loadChat",
 					"chat_request" : {
@@ -567,9 +578,10 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					}
 				}
 				$scope.apiClient.postData(request, function(response){
+					if(hasUnread) $scope.user.unreadChatsCount--;
 					$scope.chatController.chats[$scope.selected_person.uid] = {
 						"conversation" : response.conversation,
-						"meta" : {}
+						"meta" : $scope.selected_person
 					};
 					$scope.currentConversation = response.conversation;
 					$scope.$digest();
@@ -591,10 +603,10 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					}
 				} 
 				$scope.socketController.send(request);
-	
+				
+				// reset text box
+				this.currentText.content = '';
 			
-				// update view
-				// ...
 			},
 
 			confirmTransmission : function(transmission){
@@ -606,16 +618,48 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 					case "new message" :
 						var message = transmission.body.message;
+						var relationship = transmission.body.relationship;
 						var senderId = message.senderId;
+						var inConversation = false;
+						
+						// if we're in the chat - push the message onto the screen
 						if(senderId in this.chats){
+
+							console.log('conversation there');
+
 							this.chats[message.senderId].conversation.push(message);	
-							if($scope.selected_person.uid == message.senderId){
+							if($scope.chattingWith && $scope.chattingWith == message.senderId){
 								inConversation = true;
+
+								console.log('in conversation');
+
+								// send message
+								var request = {
+									verb : "markChatAsRead",
+									relationship : {
+										selfId : $scope.user.uid,
+										otherId : $scope.selected_person.uid										
+									}
+								} 
+								$scope.socketController.send(request);
+								// shows on screen - so tell the server that it's not unread
 							}
 						}
-						else {
-							this.youveGotMail(message);
+
+
+						// otherwise notify the user
+						if(!inConversation){
+
+							if(relationship.numUnread != 1){
+								// you already know that you've got unread mail from the person
+								// ToDo: show toast notification
+							}
+							else {
+								$scope.user.unreadChatsCount++;
+								if($scope.screen = "recents") $scope.feedController.updateFeed();
+							}
 						}
+
 					break;
 
 					case "message sent" :
@@ -624,7 +668,6 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 						if(message.senderId == message.targetId) break;
 						this.chats[message.targetId].conversation.push(message);
 						if($scope.selected_person.uid == message.targetId){
-							this.currentText.content = '';
 							inConversation = true;
 						}
 
@@ -632,17 +675,13 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 				}
 
-			
+				
 				$scope.$digest();
-
+				
 				if(inConversation){
 					  $(".appFrame").animate({ scrollTop: $(".appFrame").height() }, "slow");
 				}
 
-			},
-
-			youveGotMail : function(message){
-				alert("you've got mail from user #" + message.senderId);
 			},
 
 			goBack : function(){
@@ -687,7 +726,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					};
 							   
 					this.socket.onmessage = function(envelope) { 
-						
+
 						var transmission = angular.fromJson(envelope.data);
 
 						if("status" in transmission && transmission.status == "success"){
@@ -773,5 +812,17 @@ var Utilities = {
 			"&zoom=14&size=300x200&sensor=false" +
 			"&markers=color:blue|" + point.lat + "," + point.lon;
 		return map_url;
+	},
+
+	validate : function(form, fields, needs){
+		var goAhead = true;
+		$.each(fields, function(fIndex, field_name){
+			if(form[field_name] == '') {
+				needs[field_name] = true;
+				goAhead = false;
+			}
+			else needs[field_name] = false;
+		});
+		return goAhead;
 	}
 }

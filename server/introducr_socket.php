@@ -1,30 +1,21 @@
 #!/usr/bin/env php
 <?php
 
-fclose(STDOUT);
-fclose(STDERR);
-$STDOUT = fopen('logs/socket_runtime.log', 'a+');
-$STDERR = fopen('logs/error.log', 'a+');
-date_default_timezone_set('America/New_York');
-ini_set("display_errors", "stderr");
-ini_set("error_log", 'logs/error.log');
 
+// LOAD CONFIG
+require_once("model/introducr-config.php");
 
 // LOAD FRAMEWORK
 require_once('model/framework/rkdatabase.php');
 require_once('model/framework/websockets.php');
 
 // LOAD DATA MODEL
-require_once("model/introducr-config.php");
 require_once("model/introducr_model.php");
 
 
-//print_r($STDOUT);
-
-echo "test"
 
 
-class introducrSocketServer extends WebSocketServer {
+class IntroducrSocketServer extends WebSocketServer {
 	protected $maxBufferSize = 1048576; //1MB... overkill for an echo server, but potentially plausible for other applications.
 
 
@@ -87,13 +78,16 @@ class introducrSocketServer extends WebSocketServer {
 		// has been closed, so there is no need to clean up the socket itself here.
 	}
 
+	function markChatAsRead($sender, $request){
+		$this -> model -> markChatAsRead($request['relationship']);
+	}
 
 	function postMessage($sender, $request){
 
 		
 			// open the payload
 			$message = $request['message'];
-			$fromDB = $this -> api -> postMessage($message);
+			$fromDB = $this -> model -> postMessage($message);
 
 			
 			// if message is successful
@@ -102,13 +96,16 @@ class introducrSocketServer extends WebSocketServer {
 				$messageInDB = $fromDB["message"];
 				$targetId = $message['targetId'];
 
+
+				// SEND MESSAGE TO USER
 				if(isset($this -> uidHash[$targetId])) {
 					$isOnline = true;
 					$notification = array(
 						"status" => "success",
 						"subject" => "new message",
 						"body" => array(
-							"message" => $messageInDB
+							"message" => $messageInDB,
+							"relationship" => $this -> model -> getRelationship($targetId, $message['senderId'])
 						)
 					);
 					$this -> send($this -> uidHash[$targetId], json_encode($notification));
@@ -117,7 +114,7 @@ class introducrSocketServer extends WebSocketServer {
 					$isOnline = false;
 				}
 
-
+				// CONFIRM MESSAGE TO SENDER
 				$response = array(
 					"status" => "success",
 					"subject" => "message sent",
@@ -146,9 +143,11 @@ class introducrSocketServer extends WebSocketServer {
 
 extract($introducr_config['client']['socket']);
 
-$socketServer 			= new introducrSocketServer($path,$port);
-$socketServer -> api 	= new introducrAPI($introducr_config);
+$socketServer 			= new IntroducrSocketServer($path,$port);
+$socketServer -> model 	= new IntroducrModel($introducr_config);
+print_r($socketServer -> model);
 $socketServer -> db 	= new RK_mysql($introducr_config['database']);
+//$socketServer -> db -> debug = true;
 
 try {
 	$socketServer -> run();

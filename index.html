@@ -2,7 +2,10 @@
 <html lang="en">
 	<head>
 		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black">
+		<meta name="format-detection" content="telephone=yes"><!-- maybe have phone links? -->
+		
 
 		<!-- JQUERY \ ANGULAR -->	
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-alpha1/jquery.min.js"></script>
@@ -100,7 +103,7 @@
 					<div class="loginMain">
 						<p>Click below to start using {{appName}}</p>
 						<div class="btnFrame">
-							<a href="{{fb_config.auth_url}}">
+							<a ng-click="apiClient.logIntoFacebook()">
 								<img src="client/images/fbcnct.png" />
 							</a>
 						</div>
@@ -111,9 +114,9 @@
 				<div ng-if="view == 'checkIn'" class="primaryFrame checkinFrame" style="padding-top: 16px">
 					<h2>Check In</h2>
 					<div class="checkin_form">
-						<div class="form-group" style="margin: 0">
+						<div class="form-group" style="margin: 0" ng-class="{'has-error': checkinController.needs.location}">
 							<label class="control-label" for="locationName">Where are you?</label>
-							<input class="form-control" id="locationName" type="text" ng-model="checkinController.newCheckin.location">
+							<input class="form-control" id="locationName" type="text" ng-model="checkinController.newCheckin.location" >
 						</div>
 						
 						<div ng-if="here.hasLocation">
@@ -121,7 +124,7 @@
 						</div>
 						<div class="form-group" ng-class="{'has-error': checkinController.needs.message}" style="margin-top: 8px">
 							<label for="newcheckin_message" class="control-label">What's up?</label>
-							<textarea class="form-control" id="newcheckin_message" ng-model="checkinController.newCheckin.message" maxlength="140"></textarea>
+							<textarea 	class="form-control" id="newcheckin_message" ng-model="checkinController.newCheckin.message" maxlength="140"></textarea>
 							<div style="height: 15px;">
 								<span class="help-block">{{(140 - checkinController.newCheckin.message.length)}} chars remaining</span>
 							</div>
@@ -243,7 +246,7 @@
 									<img ng-src="//graph.facebook.com/{{checkin.fbid}}/picture" />
 								</div>
 								<div class="text">
-									<div class="name">
+									<div class="name" ng-class="{unreadPerson : checkin.numUnread != 0}">
 										{{checkin.first_name}} {{checkin.last_name}}
 									</div>
 									<div ng-if="feedController.mode=='feed'">
@@ -255,7 +258,7 @@
 										</div>
 									</div>
 									<div ng-if="feedController.mode=='recents'">
-										<div class="message">{{ checkin.dateRecentObj | date:'EEEE'}}</div>
+										<div class="message">{{ checkin.dateRecentObj | date:'MMM. d - h:mma'}}</div>
 									</div>
 								</div>
 							</div>
@@ -394,6 +397,7 @@
 				</div>
 				<div class="link recents" ng-click="feedController.updateFeed('recents')"
 					ng-class="{active : currentComponent == 'feed' && screen == 'recents'}">
+					<div class="unreadChatsCount" ng-if="user.unreadChatsCount != 0">{{user.unreadChatsCount}}</div>
 					<i class="glyphicon glyphicon-time"></i>
 					<div>Recents</div>
 				</div>
