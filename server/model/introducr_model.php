@@ -49,6 +49,7 @@
 			
 			// if it's a facebook user, get uid
 			$uid = $this -> getUserFromFacebook($access_token);
+			$this -> updateFriends($uid, $access_token);
 			
 			// PUT OTHER LOGIN MODES HERE
 
@@ -428,37 +429,17 @@
 			$userFromDB = $this -> _getUserByFbId($fbid);
 
 
-			// update friends list
-			// ToDo: Do this on client to reduce server load, moved onto server to avoid client-side loading issues
-
-			$url = 'https://graph.facebook.com/me/friends?limit=5000&access_token=' . $access_token;
-			$response = file_get_contents($url);
-			if(!$response || strpos($response, 'error') !== false) {
-				$this -> handleError("Couldn't get friends list.", true);
-			}
-			$friendsResponse = json_decode($response, true);
-			$friendsList = array();
-			foreach($friendsResponse['data'] as $friend){
-				$friendsList[] = $friend['id'];
-			}
-			$this -> recordFriends($friendsList);
-
-
-
-
-
 			// if user in database, return the uid
 			if($userFromDB) return $userFromDB['uid'];
-
+			
 			
 
-			
-			// if not - add user to database
+
+			// IF NOT - CREATE NEW USER OBJECT FROM FACEBOOK RETRIEVAL
 			$newUser = $userFromFacebook;
 
 			$newUser['fbAccessToken'] = $access_token;
 			
-			// - CREATE NEW USER OBJECT FROM FACEBOOK RETRIEVAL
 			if(isset($newUser['birthday'])) {
 				$newUser["birthday"] = date("Y-m-d H:i:s", strtotime($newUser["birthday"]));
 			}
@@ -483,9 +464,20 @@
 		
 		}
 
-		function recordFriends($friendsList){
+		function updateFriends($userId, $access_token){
 
-			$userId = $_SESSION['uid'];
+			// update friends list
+			$url = 'https://graph.facebook.com/me/friends?limit=5000&access_token=' . $access_token;
+			$response = file_get_contents($url);
+			if(!$response || strpos($response, 'error') !== false) {
+				$this -> handleError("Couldn't get friends list.", true);
+			}
+			$friendsResponse = json_decode($response, true);
+			$friendsList = array();
+			foreach($friendsResponse['data'] as $friend){
+				$friendsList[] = $friend['id'];
+			}
+
 			foreach($friendsList as $friendFbId){
 
 				$friend = $this -> _getUserByFbId($friendFbId);

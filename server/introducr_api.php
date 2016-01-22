@@ -46,13 +46,17 @@
 	
 	$isLoggedIn = (isset($_SESSION['uid']) && isset($request['uid']) && $_SESSION['uid'] == $request['uid']);
 	
-	if( $requiresLogin && !$isLoggedIn){
-		$response['error'] = "logged out";
-		echo json_encode($response);
-		exit();
+	if( $requiresLogin ){
+
+		if(!$isLoggedIn){
+			$response['error'] = "logged out";
+			echo json_encode($response);
+			exit();
+		}
+		$introducr -> uid = $_SESSION['uid'];	
 	}
 	
-	$introducr -> uid = $_SESSION['uid'];
+	
 	$response = $introducr -> $verb();
 	echo json_encode($response);
 
