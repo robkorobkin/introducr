@@ -29,15 +29,8 @@ class IntroducrSocketServer extends WebSocketServer {
 		if(!isset($verb)) $this -> log_error($sender, "no action requested");
 		if(!isset($uid) && $verb != "register") $this -> log_error($sender, "no sender id");
 
-		if($verb == "register") {
-			$this -> stdout(date('l - F j, Y - g:i:s A') . "\tUSER LOGIN\t" . $name . "\n");
-		}
-
-
-/* -- CAN'T READ FROM ONE SERVER TO THE OTHER, MAYBE GO THROUGH MYSQL? POSTPONE
-		session_start();
-		if(!isset($_SESSION['uid'])) $this -> log_error($sender, print_r($_SESSION, 1));
-		if(!$_SESSION['uid'] != $uid) $this -> log_error($sender, "you are not logged in correctly");
+/* -- 	- ToDo: VERIFY THAT USER IS WHO THEY SAY THEY ARE
+		- CAN'T READ FROM ONE SERVER TO THE OTHER, MAYBE GO THROUGH MYSQL? POSTPONE
 */
 
 		if(!$this -> goAhead) return;
@@ -47,6 +40,13 @@ class IntroducrSocketServer extends WebSocketServer {
 
 		// run request		
 		if(isset($verb) && $verb != "register"){
+
+			// check to make sure mysql connection is still alive, and if it's dead, restart it
+			if (!$this -> model -> db -> conn ->ping()) {
+				$this -> model -> db  = new rkdatabase($this -> config);
+			}
+
+
 			 $this -> $verb($sender, $request);
 		}
 	}
@@ -73,6 +73,7 @@ class IntroducrSocketServer extends WebSocketServer {
 
 	
 	protected function closed ($user) {
+		// ToDo: remove user from uidHash
 		// Do nothing: This is where cleanup would go, in case the user had any sort of
 		// open files or other objects associated with them.	This runs after the socket 
 		// has been closed, so there is no need to clean up the socket itself here.
@@ -144,9 +145,8 @@ class IntroducrSocketServer extends WebSocketServer {
 extract($introducr_config['client']['socket']);
 
 $socketServer 			= new IntroducrSocketServer($path,$port);
+$socketServer -> config = $introducr_config;
 $socketServer -> model 	= new IntroducrModel($introducr_config);
-print_r($socketServer -> model);
-$socketServer -> db 	= new RK_mysql($introducr_config['database']);
 //$socketServer -> db -> debug = true;
 
 try {

@@ -10,13 +10,16 @@
 	ini_set('session.cookie_lifetime', 60 * 60 * 24 * 7);  // 7 day cookie lifetime
 	session_start();
 
-	
 
 
 	$config = array();
+
+
+	// get the environment
 	if(strpos(getCwd(), "var") !== false) $environment = "live";
 	else $environment = "local";
 	
+
 	switch($environment) {
 	
 		// localhost configuration
@@ -71,10 +74,38 @@
 				)
 			);
 
+
+			// define error handler
+			function myErrorHandler($errno, $errstr, $errfile, $errline, $error_context){
+
+
+			    $lb = "\n";
+
+			    $message = "THIS JUST HAPPENED $lb $errstr $lb severity: $errno $lb file: $errfile $lb line: $errline $lb context: " . print_r($error_context, 1)  . "$lb $lb $lb";
+
+			    // write to log
+			    file_put_contents('../../logs/error.log', $message, FILE_APPEND);
+
+			    // send me an email
+			    mail( "rob.korobkin@gmail.com", "INTRODUCR ERROR", $message, 'From: server@introducr.net');
+
+
+			    /* Don't execute PHP internal error handler */
+			    return true;
+			}
+
+
+			// set to the user defined error handler
+			set_error_handler("myErrorHandler");
+
 		break;
 
 		
 	}
+
+
+	// test error handler
+	in_array("live", "test");
 		
 
 	// authentication url

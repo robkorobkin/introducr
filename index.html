@@ -396,7 +396,7 @@
 					<div>Feed</div>
 				</div>
 				<div class="link recents" ng-click="feedController.updateFeed('recents')"
-					ng-class="{active : currentComponent == 'feed' && screen == 'recents'}">
+					ng-class="{active : currentComponent == 'feed' && feedController.mode == 'recents' && (screen == 'feed' || screen == 'empty')}">
 					<div class="unreadChatsCount" ng-if="user.unreadChatsCount != 0">{{user.unreadChatsCount}}</div>
 					<i class="glyphicon glyphicon-time"></i>
 					<div>Recents</div>

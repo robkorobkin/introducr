@@ -59,7 +59,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 			// init ssocket controller
 			$scope.socketController.init(introducr_settings.socket);
-			$scope.feedController.init();
+			$scope.feedController.init($scope.feedMode);
 			
 			// bring up selected person
 			$scope.currentPerson = {
@@ -262,6 +262,9 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				var feedList = localStorageService.get('feedList');
 				$scope.feedList = (feedList) ? feedList : [];
 
+				var feedMode = localStorageService.get('feedMode');
+				$scope.feedMode = (feedMode) ? feedMode : 'feed';
+
 				// load geolocation
 				var here = localStorageService.get('here');
 				here = (here) ? here : $scope.defaultLocation;
@@ -277,6 +280,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 				var feedList = $scope.feedController.feedList;
 				localStorageService.set('feedList', feedList);
+				localStorageService.set('feedMode', $scope.feedController.mode);
 
 				localStorageService.set('here', $scope.here);	
 			},
@@ -409,7 +413,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 			active : false,
 
-			init : function(){
+			init : function(feedMode){
 				
 
 				// GEOLOCATOR - Initialized when cookie loaded
@@ -432,7 +436,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					verb : "listCheckins"
 				};
 			
-				this.setMode("feed");
+				this.setMode(feedMode);
 			},
 
 			resetSearch : function(){
@@ -587,7 +591,8 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					};
 					$scope.currentConversation = response.conversation;
 					$scope.$digest();
-					$(".appFrame").scrollTop($(".appFrame").height());
+					var scroll = $('.mainContent').height() - $(".appFrame").height();
+					if(scroll > 0) $(".appFrame").scrollTop(scroll);
 
 				});		
 
@@ -677,7 +682,8 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				$scope.$digest();
 				
 				if(inConversation){
-					  $(".appFrame").animate({ scrollTop: $(".appFrame").height() }, "slow");
+					var scroll = $('.mainContent').height() - $(".appFrame").height();
+					if(scroll > 0) $(".appFrame").animate({ scrollTop:  scroll }, "slow");
 				}
 
 			},
