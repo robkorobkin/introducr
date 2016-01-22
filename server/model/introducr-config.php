@@ -78,13 +78,14 @@
 			// define error handler
 			function myErrorHandler($errno, $errstr, $errfile, $errline, $error_context){
 
+				echo "custom error handler fired!";
 
 			    $lb = "\n";
 
 			    $message = "THIS JUST HAPPENED $lb $errstr $lb severity: $errno $lb file: $errfile $lb line: $errline $lb context: " . print_r($error_context, 1)  . "$lb $lb $lb";
 
 			    // write to log
-			    file_put_contents('../../logs/error.log', $message, FILE_APPEND);
+			    file_put_contents('/var/www/logs/error.log', $message, FILE_APPEND);
 
 			    // send me an email
 			    mail( "rob.korobkin@gmail.com", "INTRODUCR ERROR", $message, 'From: server@introducr.net');
@@ -98,14 +99,18 @@
 			// set to the user defined error handler
 			set_error_handler("myErrorHandler");
 
+			// test error handler
+			echo "about to cause error";
+			in_array("live", "testddd");
+			echo "just caused it";
+
+
 		break;
 
 		
 	}
 
 
-	// test error handler
-	in_array("live", "test");
 		
 
 	// authentication url
