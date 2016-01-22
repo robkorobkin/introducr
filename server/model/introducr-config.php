@@ -78,7 +78,6 @@
 			// define error handler
 			function myErrorHandler($errno, $errstr, $errfile, $errline, $error_context){
 
-				echo "custom error handler fired!";
 
 			    $lb = "\n";
 
@@ -99,12 +98,7 @@
 			// set to the user defined error handler
 			set_error_handler("myErrorHandler");
 
-			// test error handler
-			echo "about to cause error";
-			in_array("live", "testddd");
-			echo "just caused it";
-
-
+		
 		break;
 
 		
