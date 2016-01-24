@@ -43,7 +43,7 @@ class IntroducrSocketServer extends WebSocketServer {
 
 			// check to make sure mysql connection is still alive, and if it's dead, restart it
 			if (!$this -> model -> db -> conn ->ping()) {
-				$this -> model -> db  = new rkdatabase($this -> config);
+				$this -> model -> db  = new RK_mysql($this -> config);
 			}
 
 
