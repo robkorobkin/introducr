@@ -723,7 +723,6 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				var host = 'ws://' + socket_params.path + ':' + socket_params.port; 
 				try {
 					this.socket = new WebSocket(host);
-					this.socket.self = this;
 					
 					this.socket.onopen = function(msg) { 
 						$scope.socketController.isOpen = true;
@@ -737,7 +736,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 							$scope.chatController.confirmTransmission(transmission);	
 						}
 						else {
-							console.log("socket spew:")
+							console.log("bad socket message")
 							console.log(envelope);
 							console.log(transmission);
 						}
@@ -745,8 +744,9 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					
 					};
 							   
+					// if we time out, but the app is still open, reconstruct the connection
 					this.socket.onclose   = function(msg) { 
-						// can we disconnect the user from the server-side hash?
+						$scope.socketController.init(introducr_settings.socket);
 					};
 					
 				}
