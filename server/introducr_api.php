@@ -37,7 +37,11 @@
 	}
 
 
+	// run api
 	$request = $_POST;
+	if(!isset($request['verb'])){
+		exit("How did you get here?  No api method requested.  If you're a hackr bot, you can just fuck the fuck off.");
+	}
 	$introducr -> request = $request;
 	$verb = $request['verb'];
 	
