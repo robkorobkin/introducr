@@ -134,7 +134,7 @@
 			// if it's there, return it!
 			if(count($row) != 0) return $row;
 			
-			// otherwise, create it!
+			// otherwise, create it and return the new row
 			$this -> insert($obj, $table);
 			return $obj;
 

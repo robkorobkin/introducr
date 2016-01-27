@@ -636,7 +636,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 							if($scope.chattingWith && $scope.chattingWith == message.senderId){
 								inConversation = true;
 
-								// send message
+								// shows on screen - so tell the server that it's not unread
 								var request = {
 									verb : "markChatAsRead",
 									relationship : {
@@ -645,7 +645,6 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 									}
 								} 
 								$scope.socketController.send(request);
-								// shows on screen - so tell the server that it's not unread
 							}
 						}
 

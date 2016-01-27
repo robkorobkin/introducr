@@ -529,8 +529,8 @@
 			$rToSenderRow = $this -> db -> getOrCreate($rToSender, "relationships");
 
 
-			// bail if person has been blocked		
-			if($rToSenderRow['hasBlocked']) {
+			// bail if relationship exists and person has been blocked		
+			if(isset($rToSenderRow['hasBlocked']) && $rToSenderRow['hasBlocked']) {
 				return array(
 					"status" => "error",
 					"error_message" => "target has blocked you"
