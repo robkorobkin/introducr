@@ -24,6 +24,29 @@
 			exit(json_encode($response));
 		}
 
+		function validateInput($fields){
+			foreach($fields as $f){
+				if(!isset($this -> request[$f])) $this -> handleError("Invalid input.  Missing: " . $f);
+			}
+		}
+
+		function validateUser(){
+			$this -> validateInput(["access_token", "uid"]);
+			extract($this -> request);
+
+			$user = $this -> _getUserByUid($uid);
+			
+			if($user['fbAccessToken'] != $access_token || $access_token == '') {
+				$response['error'] = "logged out";
+				echo json_encode($response);
+				exit();
+			}
+
+
+			$this -> uid = $uid;
+			$this -> user = $user;
+
+		}
 
 
 		/************************************************************************************************
@@ -51,16 +74,14 @@
 			$uid = $this -> getUserFromFacebook($access_token);
 			$this -> updateFriends($uid, $access_token);
 			
-			// PUT OTHER LOGIN MODES HERE
-
-			// store uid to session
-			$_SESSION['uid'] = $uid;
+			// PUT OTHER LOGIN MODES HERE?
 			
 			// else - update date accessed
 			$update['dateAccessed'] = date("Y-m-d H:i:s");
 			$update['fbAccessToken'] = $access_token; // get updated access_token from Facebook
 			
 			$where['uid'] = $uid;
+			$this -> uid = $uid;
 			$this -> db -> update($update, "users", $where);
 			
 			$user = $this -> _getUserByUid($uid);
@@ -310,7 +331,7 @@
 			$sql = 'SELECT c.*, u.uid, u.fbid, u.first_name, u.last_name, u.bio, u.birthday, r.numUnread, r.lastMessageDate, r.hasBlocked
 					FROM users u
 					LEFT JOIN checkins c ON c.checkinid = u.lastCheckinId 
-					LEFT JOIN relationships r ON r.selfId = ' . $_SESSION['uid'] . ' and r.otherId = u.uid ' . 
+					LEFT JOIN relationships r ON r.selfId = ' . $this -> uid . ' and r.otherId = u.uid ' . 
 					$whereString .
 					' ORDER BY ' . $orderBy . ' LIMIT 40';
 			

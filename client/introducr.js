@@ -98,10 +98,13 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 		$scope.apiClient = {
 			
 			postData : function(request, f){
-				if("user" in $scope) request.uid = $scope.user.uid;
+				if("user" in $scope) {
+					request.uid = $scope.user.uid;
+					request.access_token = $scope.user.fbAccessToken;
+				}
 				$.post('server/introducr_api.php', request, function(response){
-					if('error' in response && response.error == "logged out"){
-						 // $scope.apiClient.logoutUser();
+					if('error' in response) {
+						// logger("there was an error");
 					}
 					else if(f) f(response);
 					$scope.$digest();

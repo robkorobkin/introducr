@@ -45,19 +45,11 @@
 	$introducr -> request = $request;
 	$verb = $request['verb'];
 	
-	$requiresLogin = ($verb != 'loginUser' && $verb != 'logoutUser');
-	
-	
-	$isLoggedIn = (isset($_SESSION['uid']) && isset($request['uid']) && $_SESSION['uid'] == $request['uid']);
-	
-	if( $requiresLogin ){
 
-		if(!$isLoggedIn){
-			$response['error'] = "logged out";
-			echo json_encode($response);
-			exit();
-		}
-		$introducr -> uid = $_SESSION['uid'];	
+	// validate user
+	$requiresLogin = ($verb != 'loginUser' && $verb != 'logoutUser');	
+	if( $requiresLogin ){
+		$introducr -> validateUser();
 	}
 	
 	
