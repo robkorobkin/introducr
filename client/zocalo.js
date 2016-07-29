@@ -20,9 +20,9 @@ function logger(message){
 // THE APP!
 *************************************************************/
 
-var app = angular.module('introducrApp', ['LocalStorageModule']);
+var app = angular.module('zocaloApp', ['LocalStorageModule']);
 
-app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$window',  'localStorageService',
+app.controller('zocaloCtrl', ['$scope', '$http', '$sce', '$rootScope', '$window',  'localStorageService',
 	function($scope, $http, $sce, $rootScope, $window, localStorageService){
 		
 		
@@ -31,8 +31,8 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 			// load settings
 			$scope.dictionary = dictionary;
-			$scope.fb_config = introducr_settings.facebook;
-			$scope.appName = 'introducr';
+			$scope.fb_config = zocalo_settings.facebook;
+			$scope.appName = 'zocalo';
 			
 
 			// default map to Franklin & Congress
@@ -58,7 +58,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 
 
 			// init ssocket controller
-			$scope.socketController.init(introducr_settings.socket);
+			$scope.socketController.init(zocalo_settings.socket);
 			$scope.feedController.init($scope.feedMode);
 			
 			// bring up selected person
@@ -75,13 +75,13 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 			// and launch app
 			if($scope.sessionInCookie) {
 				$scope.loadInitialView();
-				$scope.apiClient.logIntoIntroducr(); // runs in the background
+				$scope.apiClient.logIntozocalo(); // runs in the background
 			}
 			else if(fb_code){
 				$scope.user = {
 			 		fb_code : fb_code			 	
 			 	}				
-			 	$scope.apiClient.logIntoIntroducr();
+			 	$scope.apiClient.logIntozocalo();
 			}
 			else {
 				$scope.loadView('login');
@@ -102,7 +102,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					request.uid = $scope.user.uid;
 					request.access_token = $scope.user.fbAccessToken;
 				}
-				$.post('server/introducr_api.php', request, function(response){
+				$.post('server/zocalo_api.php', request, function(response){
 					if('error' in response) {
 						// logger("there was an error");
 					}
@@ -115,7 +115,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 				window.location = $scope.fb_config.auth_url;
 			},
 
-			logIntoIntroducr : function(){
+			logIntozocalo : function(){
 
 				if(!("user" in $scope)){
 					logger("tried to login to app without a user in the cookie");
@@ -158,6 +158,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					else {
 						$scope.user = response.user;
 						
+						
 						// If feed list is empty, load it from login response
 						// ToDo: Load it above?
 						if($scope.feedList.length == 0) {
@@ -186,7 +187,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 					$scope.loadView('loading');	
 				}
 
-				var logout_url = 'https://www.facebook.com/logout.php?next=' + encodeURIComponent(introducr_settings.base_url) + '&access_token=' + $scope.user.fbAccessToken;
+				var logout_url = 'https://www.facebook.com/logout.php?next=' + encodeURIComponent(zocalo_settings.base_url) + '&access_token=' + $scope.user.fbAccessToken;
 
 				$scope.user = {};
 				$scope.loaded = false;
@@ -748,7 +749,7 @@ app.controller('introducrCtrl', ['$scope', '$http', '$sce', '$rootScope', '$wind
 							   
 					// if we time out, but the app is still open, reconstruct the connection
 					this.socket.onclose   = function(msg) { 
-						$scope.socketController.init(introducr_settings.socket);
+						$scope.socketController.init(zocalo_settings.socket);
 					};
 					
 				}

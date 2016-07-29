@@ -31,14 +31,14 @@
 				"servername" => 'localhost', 
 				"username" => "root", 
 				"password" => "root",
-				"database" => "introducr"
+				"database" => "zocalo"
 			);
 			$config["facebook_secret"] = '69228433742c2423c28cdc924216ecd2';
 
 
 			// this gets json-enoced and passed to the client
 			$config['client'] = array(
-				'base_url' => 'http://www.localhost.com/biz/introducr/app',
+				'base_url' => 'http://www.localhost.com/biz/zocalo/app',
 				'socket' => array(
 					"path" => "127.0.0.1",
 					'port' => "9000"
@@ -57,16 +57,16 @@
 				"servername" => "localhost",
 				"username" => "root", 
 				"password" => "7DP7BEDrsu",
-				"database" => "introducr_live"
+				"database" => "zocalo_live"
 			);
 			$config["facebook_secret"] = '60913d21ea6f45937ca9530766ae193a';
 
 
 			// this gets json-enoced and passed to the client
 			$config['client'] = array(
-				'base_url' => 'http://introducr.net/',
+				'base_url' => 'http://zocalo.net/',
 				'socket' => array(
-					"path" => "introducr.net",
+					"path" => "zocalo.net",
 					'port' => "9000"
 				),	
 				'facebook' => array(
@@ -87,7 +87,7 @@
 			    file_put_contents('/var/www/logs/error.log', $message, FILE_APPEND);
 
 			    // send me an email
-			    mail( "rob.korobkin@gmail.com", "INTRODUCR ERROR", $message, 'From: server@introducr.net');
+			    mail( "rob.korobkin@gmail.com", "zocalo ERROR", $message, 'From: server@zocalo.net');
 
 
 			    /* Don't execute PHP internal error handler */
@@ -192,5 +192,5 @@
 	
 	for($year = 2015; $year >= 1915; $year--) $config['dictionary']['years'][] = $year;
 	
-	global $introducr_config;
-	$introducr_config = $config;
+	global $zocalo_config;
+	$zocalo_config = $config;

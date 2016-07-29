@@ -48,7 +48,7 @@ header("Expires: 0"); // Proxies.
 
 		<meta name="apple-mobile-web-app-capable" content="yes">
 		<meta name="mobile-web-app-capable" content="yes">
-		<meta name="apple-mobile-web-app-title" content="Introducr">
+		<meta name="apple-mobile-web-app-title" content="zocalo">
 		<link rel="shortcut icon" sizes="16x16" href="client/third_party/cubiq/images/icon-16x16.png">
 		<link rel="shortcut icon" sizes="196x196" href="client/third_party/cubiq/images/icon-196x196.png">
 		<link rel="apple-touch-icon-precomposed" href="client/third_party/cubiq/images/icon-152x152.png">
@@ -64,12 +64,12 @@ header("Expires: 0"); // Proxies.
 
 
 		<!-- APP -->
-		<script src="server/introducr_api.php?lib=js"></script>
-		<link href="server/introducr_api.php?lib=css" rel="stylesheet" type="text/css" />
+		<script src="server/zocalo_api.php?lib=js"></script>
+		<link href="server/zocalo_api.php?lib=css" rel="stylesheet" type="text/css" />
 
 	</head>
 	
-	<body  ng-app="introducrApp" ng-controller="introducrCtrl">
+	<body  ng-app="zocaloApp" ng-controller="zocaloCtrl">
 
 
 		<!-- CHAT CHROME -->
@@ -123,14 +123,29 @@ header("Expires: 0"); // Proxies.
 				<div ng-if="view == 'checkIn'" class="primaryFrame checkinFrame" style="padding-top: 16px">
 					<h2>Check In</h2>
 					<div class="checkin_form">
-						<div class="form-group" style="margin: 0" ng-class="{'has-error': checkinController.needs.location}">
-							<label class="control-label" for="locationName">Where are you?</label>
-							<input class="form-control" id="locationName" type="text" ng-model="checkinController.newCheckin.location" >
+
+						<div ng-if="user.hasSpots">
+							<div class="form-group" style="margin: 0" ng-class="{'has-error': checkinController.needs.location}">
+								<label class="control-label">Where are you?</label>
+								<div class="btn-group-vertical">
+									<a class="btn btn-raised" ng-repeat=""></a>
+									
+								</div>
+							</div>
 						</div>
-						
-						<div ng-if="here.hasLocation">
-							<img ng-src="{{hereMapImg}}" class="checkinImage"/>
+
+
+						<div ng-if="!user.hasSpots">
+							<div class="form-group" style="margin: 0" ng-class="{'has-error': checkinController.needs.location}">
+								<label class="control-label" for="locationName">Where are you?</label>
+								<input class="form-control" id="locationName" type="text" ng-model="checkinController.newCheckin.location" >
+							</div>
+							
+							<div ng-if="here.hasLocation">
+								<img ng-src="{{hereMapImg}}" class="checkinImage"/>
+							</div>
 						</div>
+
 						<div class="form-group" ng-class="{'has-error': checkinController.needs.message}" style="margin-top: 8px">
 							<label for="newcheckin_message" class="control-label">What's up?</label>
 							<textarea 	class="form-control" id="newcheckin_message" ng-model="checkinController.newCheckin.message" maxlength="140"></textarea>

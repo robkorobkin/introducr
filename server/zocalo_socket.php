@@ -3,19 +3,19 @@
 
 
 // LOAD CONFIG
-require_once("model/introducr-config.php");
+require_once("model/zocalo-config.php");
 
 // LOAD FRAMEWORK
 require_once('model/framework/rkdatabase.php');
 require_once('model/framework/websockets.php');
 
 // LOAD DATA MODEL
-require_once("model/introducr_model.php");
+require_once("model/zocalo_model.php");
 
 
 
 
-class IntroducrSocketServer extends WebSocketServer {
+class zocaloSocketServer extends WebSocketServer {
 	protected $maxBufferSize = 1048576; //1MB... overkill for an echo server, but potentially plausible for other applications.
 
 
@@ -142,11 +142,11 @@ class IntroducrSocketServer extends WebSocketServer {
 
 }
 
-extract($introducr_config['client']['socket']);
+extract($zocalo_config['client']['socket']);
 
-$socketServer 			= new IntroducrSocketServer($path,$port);
-$socketServer -> config = $introducr_config;
-$socketServer -> model 	= new IntroducrModel($introducr_config);
+$socketServer 			= new zocaloSocketServer($path,$port);
+$socketServer -> config = $zocalo_config;
+$socketServer -> model 	= new zocaloModel($zocalo_config);
 //$socketServer -> db -> debug = true;
 
 try {

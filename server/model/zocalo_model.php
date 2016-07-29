@@ -1,6 +1,6 @@
 <?php
 
-	Class IntroducrModel {
+	Class zocaloModel {
 		
 		function __construct($config){
 			$this -> config = $config;
@@ -10,13 +10,13 @@
 		function printJS(){
 			header('Content-type: text/javascript');
 			echo 'var dictionary=' . json_encode($this -> config['dictionary']) . ';';
-			echo 'var introducr_settings = ' . json_encode($this -> config['client']) . ';';
-			echo file_get_contents('../client/introducr.js');
+			echo 'var zocalo_settings = ' . json_encode($this -> config['client']) . ';';
+			echo file_get_contents('../client/zocalo.js');
 		}
 		
 		function printCSS(){
 			header('Content-type: text/css');
-			echo file_get_contents('../client/introducr.css');
+			echo file_get_contents('../client/zocalo.css');
 		}
 		
 		function handleError($message){
@@ -24,9 +24,10 @@
 			exit(json_encode($response));
 		}
 
-		function validateInput($fields){
+		function validateInput($fields, $collection = false){
+			if(!$collection) $collection = $this -> request;
 			foreach($fields as $f){
-				if(!isset($this -> request[$f])) $this -> handleError("Invalid input.  Missing: " . $f);
+				if(!isset($collection[$f])) $this -> handleError("Invalid input.  Missing: " . $f);
 			}
 		}
 
@@ -87,6 +88,10 @@
 			$user = $this -> _getUserByUid($uid);
 			$user['unreadChatsCount'] = $this -> _getUnreadChatsCount($uid);
 
+
+			$user['currentSpots'] = $this -> getLocalSpots();
+			$user['hasSpots'] = (count($user['currentSpots']) != 0);
+
 			// return user record from database
 			return array(
 				"user" => $user,
@@ -105,6 +110,7 @@
 			unset($user['here']);  // ToDo: store user's last location?
 			unset($user['friendsList']);
 			unset($user['unreadChatsCount']);
+			unset($user['fbAccessToken']); // only update access token at login
 			
 
 			if($user['bio'] != ''){
@@ -184,6 +190,29 @@
 			$this -> db -> update($update, "relationships", $relationship);
 		}
 
+		function getLocalSpots(){
+			
+			// validation block - wish this was more strongly typed!
+			$this -> validateInput(array("search_params"));
+			$search_params = $this -> request['search_params'];
+			$this -> validateInput(array("here"), $search_params);
+			$here = $search_params['here'];
+			$this -> validateInput(array("lat", "lon", "hasLocation"), $here);
+			extract($here);
+
+
+			// define range
+			$latMin = $lat - .001; 
+			$latMax = $lat + .001; 
+			$lonMin = $lon - .001;
+			$lonMax = $lon + .001;
+
+
+			// write query
+			$sql = "SELECT * FROM spots where lat > $latMin AND $lat < $latMax AND $lon > $lonMin AND $lon < $lonMax";
+			return $this -> db -> get_results($sql);
+
+		}
 		
 
 
